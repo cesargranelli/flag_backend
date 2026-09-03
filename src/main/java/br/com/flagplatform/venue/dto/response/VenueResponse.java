@@ -5,7 +5,6 @@ import java.util.UUID;
 
 public record VenueResponse(
         UUID id,
-        UUID organizationId,
         String name,
         String address,
         String mapsUrl,
