@@ -1,0 +1,19 @@
+# Build output
+target/
+
+# IDE
+.idea/
+*.iml
+
+# Uploads
+uploads/
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# Compiled output
+compile_output.txt
+
+# OS
+.DS_Store
+Thumbs.db
