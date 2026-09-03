@@ -146,14 +146,12 @@ public class DemoDataSeeder implements CommandLineRunner {
         List<VenueEntity> venues = new ArrayList<>();
 
         VenueEntity v1 = new VenueEntity();
-        v1.setOrganizationId(org.getId());
         v1.setName("Campo Central");
         v1.setAddress("Rua dos Esportes, 100 - São Paulo, SP");
         venueRepository.save(v1);
         venues.add(v1);
 
         VenueEntity v2 = new VenueEntity();
-        v2.setOrganizationId(org.getId());
         v2.setName("Campo Norte");
         v2.setAddress("Av. Atlântica, 200 - Guarulhos, SP");
         venueRepository.save(v2);
