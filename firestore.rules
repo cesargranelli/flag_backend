@@ -1,0 +1,123 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──────────────────────────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'ADMIN';
+    }
+
+    function isOrganizer() {
+      return isAuthenticated() && request.auth.token.role in ['ADMIN', 'ORGANIZER'];
+    }
+
+    function isMesa() {
+      return isAuthenticated() && request.auth.token.role in ['ADMIN', 'MESA'];
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function belongsToOrg(orgId) {
+      return isAuthenticated()
+        && (request.auth.token.organizationId == orgId || isAdmin());
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if false; // Created via Cloud Functions on signup
+      allow update: if isAdmin() || isOwner(userId);
+      allow delete: if isAdmin();
+    }
+
+    // ── Persons ───────────────────────────────────────────────────────
+    match /persons/{personId} {
+      allow read: if true;
+      allow create: if isOrganizer();
+      allow update: if isOrganizer();
+      allow delete: if isAdmin();
+    }
+
+    // ── Organizations ─────────────────────────────────────────────────
+    match /organizations/{orgId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if belongsToOrg(orgId);
+      allow delete: if isAdmin();
+    }
+
+    // ── Teams ─────────────────────────────────────────────────────────
+    match /teams/{teamId} {
+      allow read: if true;
+      allow create, update, delete: if belongsToOrg(resource.data.organizationId);
+    }
+
+    // ── Venues ────────────────────────────────────────────────────────
+    match /venues/{venueId} {
+      allow read: if true;
+      allow create, update, delete: if isAuthenticated();
+    }
+
+    // ── Seasons ───────────────────────────────────────────────────────
+    match /seasons/{seasonId} {
+      allow read: if true;
+      allow create, update, delete: if belongsToOrg(resource.data.organizationId);
+    }
+
+    // ── Competitions ──────────────────────────────────────────────────
+    match /competitions/{competitionId} {
+      allow read: if true;
+      allow create, update, delete: if belongsToOrg(resource.data.organizationId);
+
+      // Groups
+      match /groups/{groupId} {
+        allow read: if true;
+        allow write: if isOrganizer();
+      }
+
+      // Rounds
+      match /rounds/{roundId} {
+        allow read: if true;
+        allow write: if isOrganizer();
+      }
+
+      // Competition Teams
+      match /competitionTeams/{compTeamId} {
+        allow read: if true;
+        allow write: if isOrganizer();
+      }
+
+      // Roster entries
+      match /roster/{rosterEntryId} {
+        allow read: if true;
+        allow write: if isOrganizer();
+      }
+    }
+
+    // ── Games ─────────────────────────────────────────────────────────
+    match /games/{gameId} {
+      allow read: if true;
+      allow update: if isOrganizer() || isMesa();
+      allow create, delete: if isOrganizer();
+
+      // Check-ins
+      match /checkins/{checkinId} {
+        allow read: if isOrganizer() || isMesa();
+        allow write: if isMesa();
+      }
+
+      // Score events
+      match /scoreEvents/{eventId} {
+        allow read: if true;
+        allow create: if isMesa();
+        allow update, delete: if isAdmin();
+      }
+    }
+  }
+}
