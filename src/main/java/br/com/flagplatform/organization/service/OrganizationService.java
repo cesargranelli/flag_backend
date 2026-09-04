@@ -18,7 +18,7 @@ import br.com.flagplatform.organization.exception.OrganizationAssociationConflic
 import br.com.flagplatform.organization.exception.OrganizationAssociationNotFoundException;
 import br.com.flagplatform.organization.exception.OrganizationNotFoundException;
 import br.com.flagplatform.organization.mapper.OrganizationMapper;
-import br.com.flagplatform.organization.repository.OrganizationRepository;
+import br.com.flagplatform.organization.repository.OrganizationStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -50,7 +50,7 @@ public class OrganizationService implements OrganizationLookup {
             OrganizationType.UNIVERSITY);
 
     private final OrganizationMapper mapper;
-    private final OrganizationRepository repository;
+    private final OrganizationStore repository;
 
     @Transactional
     public OrganizationCreatedResponse create(CreateOrganizationRequest request) {

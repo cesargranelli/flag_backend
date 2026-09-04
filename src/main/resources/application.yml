@@ -84,10 +84,10 @@ app:
     # Project ID do Firebase. Usado pelo emulador e exigido quando não há service account.
     project-id: ${FIREBASE_PROJECT_ID:flag-platform}
     # ── Flags por domínio (default false) ─────────────────────────────────────
-    # Ligar domínio a domínio nas próximas issues; nesta issue nenhum domínio é
-    # migrado (apenas a infraestrutura raiz). Exemplos de estrutura futura:
-    #   athlete: ${FIRESTORE_ATHLETE_ENABLED:false}
-    #   organization: ${FIRESTORE_ORGANIZATION_ENABLED:false}
+    # Cada domínio migra ligando a própria flag (ADR-006) — ligar somente quando
+    # app.firestore.enabled=true (bean Firestore ativo via FirestoreFactory).
+    # Issue #7 (piloto): organização espelha no Firestore quando true.
+    organization: ${FIRESTORE_ORGANIZATION_ENABLED:false}
 
 springdoc:
   api-docs:
