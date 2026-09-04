@@ -13,6 +13,14 @@ spring:
   flyway:
     enabled: true
 
+app:
+  firestore:
+    # Perfil dev usa o EMULADOR local do Firestore (default ON).
+    # Porta 9090 por padrão para não conflitar com o backend (8080).
+    # Para usar outra porta, exporte FIRESTORE_EMULATOR_HOST antes de subir.
+    enabled: ${FIRESTORE_ENABLED:true}
+    emulator-host: ${FIRESTORE_EMULATOR_HOST:localhost:9090}
+
 logging:
   level:
     br.com.flagplatform: DEBUG

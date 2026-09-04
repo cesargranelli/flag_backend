@@ -25,6 +25,7 @@
         <springdoc.version>3.0.3</springdoc.version>
         <spring-modulith.version>2.1.0</spring-modulith.version>
         <jjwt.version>0.12.6</jjwt.version>
+        <firebase-admin.version>9.10.0</firebase-admin.version>
     </properties>
 
     <dependencyManagement>
@@ -97,6 +98,13 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <!-- Firebase Admin SDK (Firestore) -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>${firebase-admin.version}</version>
         </dependency>
 
         <!-- OpenAPI / Swagger (SpringDoc 3.x = Spring Boot 4.x) -->
