@@ -18,6 +18,8 @@ app:
     # Perfil local permanece somente PostgreSQL — Firestore desligado (flag false).
     # A factory só é ativada quando app.firestore.enabled=true.
     enabled: ${FIRESTORE_ENABLED:false}
+    # Domínio organization também OFF no perfil local (padrão = sem espelho).
+    organization: ${FIRESTORE_ORGANIZATION_ENABLED:false}
 
 logging:
   level:

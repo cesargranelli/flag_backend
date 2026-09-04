@@ -20,6 +20,9 @@ app:
     # Para usar outra porta, exporte FIRESTORE_EMULATOR_HOST antes de subir.
     enabled: ${FIRESTORE_ENABLED:true}
     emulator-host: ${FIRESTORE_EMULATOR_HOST:localhost:9090}
+    # Domínio piloto do ADR-006 (issue #7): organizações espelham no Firestore
+    # (persistência dual) quando a flag está true — default ON no perfil dev.
+    organization: ${FIRESTORE_ORGANIZATION_ENABLED:true}
 
 logging:
   level:
