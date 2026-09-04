@@ -1,75 +1,73 @@
 package br.com.flagplatform.venue.service;
 
-import br.com.flagplatform.common.pagination.PagedResponse;
-import br.com.flagplatform.venue.VenueInfo;
-import br.com.flagplatform.venue.VenueLookup;
-import br.com.flagplatform.venue.dto.request.CreateVenueRequest;
-import br.com.flagplatform.venue.dto.request.UpdateVenueRequest;
-import br.com.flagplatform.venue.dto.response.VenueResponse;
-import br.com.flagplatform.venue.entity.VenueEntity;
-import br.com.flagplatform.venue.exception.VenueNotFoundException;
-import br.com.flagplatform.venue.mapper.VenueMapper;
+import br.com.flagplatform.common.model.Venue;
 import br.com.flagplatform.venue.repository.VenueRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
+import java.util.List;
 
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
+/**
+ * Service para venues (campos de jogo).
+ */
 @Service
-public class VenueService implements VenueLookup {
+@RequiredArgsConstructor
+public class VenueService {
 
-    private final VenueMapper mapper;
     private final VenueRepository repository;
 
-    @Transactional
-    public VenueResponse create(CreateVenueRequest request) {
-        return mapper.toResponse(repository.save(mapper.toEntity(request)));
+    /**
+     * Lista todos os venues.
+     */
+    public List<Venue> list() {
+        try {
+            return repository.listAll();
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao listar venues", e);
+        }
     }
 
-    public PagedResponse<VenueResponse> findAll(int page, int size) {
-        Page<VenueEntity> result = repository.findAll(
-                PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name")));
-        return new PagedResponse<>(
-                mapper.toResponseList(result.getContent()),
-                result.getTotalElements());
+    /**
+     * Busca venue por ID.
+     */
+    public Venue getById(String id) {
+        try {
+            return repository.getById(id);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao buscar venue", e);
+        }
     }
 
-    public VenueResponse findById(UUID id) {
-        return mapper.toResponse(findEntityById(id));
+    /**
+     * Cria um novo venue.
+     */
+    public Venue create(Venue venue) {
+        try {
+            return repository.create(venue);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao criar venue", e);
+        }
     }
 
-    @Transactional
-    public VenueResponse update(UUID id, UpdateVenueRequest request) {
-        VenueEntity entity = findEntityById(id);
-        mapper.updateEntity(entity, request);
-        return mapper.toResponse(repository.save(entity));
+    /**
+     * Atualiza um venue existente.
+     */
+    public Venue update(String id, java.util.Map<String, Object> data) {
+        try {
+            return repository.update(id, data);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao atualizar venue", e);
+        }
     }
 
-    private VenueEntity findEntityById(UUID id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new VenueNotFoundException(id));
+    /**
+     * Remove um venue.
+     */
+    public void delete(String id) {
+        try {
+            repository.delete(id);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao remover venue", e);
+        }
     }
-
-    @Override
-    public void assertExists(UUID id) {
-        findEntityById(id);
-    }
-
-    @Override
-    public boolean existsById(UUID id) {
-        return repository.existsById(id);
-    }
-
-    @Override
-    public VenueInfo findVenueInfoById(UUID id) {
-        VenueEntity entity = findEntityById(id);
-        return new VenueInfo(entity.getId(), entity.getName(), entity.getAddress(), entity.getMapsUrl());
-    }
-
 }
