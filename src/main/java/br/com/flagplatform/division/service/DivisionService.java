@@ -12,7 +12,7 @@ import br.com.flagplatform.division.exception.ConferenceCompetitionMismatchExcep
 import br.com.flagplatform.division.exception.DivisionNotFoundException;
 import br.com.flagplatform.division.exception.DuplicateDivisionNameException;
 import br.com.flagplatform.division.mapper.DivisionMapper;
-import br.com.flagplatform.division.repository.DivisionRepository;
+import br.com.flagplatform.division.repository.DivisionStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +26,7 @@ import java.util.UUID;
 public class DivisionService implements DivisionLookup {
 
     private final DivisionMapper mapper;
-    private final DivisionRepository repository;
+    private final DivisionStore repository;
     private final CompetitionLookup competitionLookup;
     private final ConferenceLookup conferenceLookup;
 

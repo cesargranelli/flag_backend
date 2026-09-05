@@ -29,6 +29,12 @@ app:
     # Issue #9: campeonatos espelham no Firestore (persistência dual) quando true —
     # default ON no perfil dev.
     competition: ${FIRESTORE_COMPETITION_ENABLED:true}
+    # Issue #10: conferências espelham no Firestore (persistência dual) quando true —
+    # default ON no perfil dev.
+    conference: ${FIRESTORE_CONFERENCE_ENABLED:true}
+    # Issue #10: divisões espelham no Firestore (persistência dual) quando true —
+    # default ON no perfil dev.
+    division: ${FIRESTORE_DIVISION_ENABLED:true}
 
 logging:
   level:
