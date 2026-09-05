@@ -123,6 +123,12 @@ public class AuthService implements UserLookup {
         entity.setPasswordHash(passwordEncoder.encode(request.password()));
         entity.setRole(request.role());
         entity.setStatus(UserStatus.ACTIVE);
+        if (request.firebaseUid() != null && !request.firebaseUid().isBlank()) {
+            entity.setFirebaseUid(request.firebaseUid().trim());
+        }
+        if (request.skills() != null) {
+            entity.setSkills(request.skills());
+        }
 
         return mapper.toResponse(userRepository.save(entity));
     }

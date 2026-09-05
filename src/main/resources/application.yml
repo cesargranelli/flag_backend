@@ -66,6 +66,10 @@ app:
     password-reset:
       # Validade do token de redefinição de senha.
       expiration-minutes: ${PASSWORD_RESET_EXPIRATION_MINUTES:60}
+    # Migração JWT custom (HS256) → Firebase Auth (ID tokens).
+    # Mantém JWT legacy funcionando enquanto Firebase Auth não é ativado.
+    # Fase 1: default false (JWT only). Ligar após configuração do Firebase project.
+    firebase-enabled: ${FIREBASE_AUTH_ENABLED:false}
 
   mail:
     # SMTP ainda não configurado. Quando true, o token de redefinição é enviado
