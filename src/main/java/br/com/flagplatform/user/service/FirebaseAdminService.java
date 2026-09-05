@@ -239,34 +239,33 @@ public class FirebaseAdminService {
      * Se o usuário já tem UID preenchido no banco, valida conflito e retorna.
      */
     private String resolveOrCreateFirebaseUid(UserEntity user) throws FirebaseAuthException {
-        // Se já existe vínculo no banco, valida
-        if (user.getFirebaseUid() != null && !user.getFirebaseUid().isBlank()) {
-            // Valida que o UID existe no Firebase (pode ter sido removido)
-            try {
-                firebaseAuth.getUser(user.getFirebaseUid());
-                return user.getFirebaseUid();
-            } catch (FirebaseAuthException e) {
-                log.warn("Firebase UID '{}' presente no DB mas não existe mais no Firebase Auth. "
-                        + "Recriando conta.", user.getFirebaseUid());
-            }
-        }
+        return resolveOrCreateFirebaseUid(user.getEmail(), user.getName(), user.getPasswordHash());
+    }
 
+    /**
+     * Resolve o UID Firebase de um usuário: tenta buscar pelo e-mail; se não existir, cria.
+     * Versão com parâmetros individuais para uso pelo AuthService.
+     *
+     * @param email         e-mail do usuário
+     * @param displayName   nome de exibição
+     * @param passwordHash  hash da senha (ignorado na criação via Admin SDK)
+     */
+    public String resolveOrCreateFirebaseUid(String email, String displayName, String passwordHash) throws FirebaseAuthException {
         // Tenta resolver UID existente no Firebase pelo email
         try {
-            UserRecord existing = firebaseAuth.getUserByEmail(user.getEmail());
+            UserRecord existing = firebaseAuth.getUserByEmail(email);
             log.info("Encontrada conta Firebase existente para '{}': UID='{}'",
-                    user.getEmail(), existing.getUid());
+                    email, existing.getUid());
             return existing.getUid();
         } catch (FirebaseAuthException notFound) {
             // Não existe — cria nova conta
             UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
-                    .setEmail(user.getEmail())
+                    .setEmail(email)
                     .setEmailVerified(true)
-                    .setDisplayName(user.getName())
-                    .setDisabled(user.getStatus() != null && !user.getStatus().name().equals("ACTIVE"));
+                    .setDisplayName(displayName);
 
             UserRecord created = firebaseAuth.createUser(createRequest);
-            log.info("Conta Firebase criada para '{}': UID='{}'", user.getEmail(), created.getUid());
+            log.info("Conta Firebase criada para '{}': UID='{}'", email, created.getUid());
             return created.getUid();
         }
     }

@@ -22,7 +22,10 @@ import br.com.flagplatform.user.exception.UserNotFoundException;
 import br.com.flagplatform.user.mapper.UserMapper;
 import br.com.flagplatform.user.repository.PasswordResetTokenRepository;
 import br.com.flagplatform.user.repository.UserRepository;
+import com.google.firebase.auth.FirebaseAuthException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -46,6 +50,7 @@ public class AuthService implements UserLookup {
     private final UserMapper mapper;
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
+    private final ObjectProvider<FirebaseAdminService> firebaseAdminServiceProvider;
 
     @Value("${app.security.password-reset.expiration-minutes:60}")
     private long resetExpirationMinutes;
@@ -67,7 +72,38 @@ public class AuthService implements UserLookup {
         entity.setRole(UserRole.ORGANIZER);
         entity.setStatus(UserStatus.PENDING);
 
+        // Cadastra usuário no Firebase Auth (Opção B: backend cria no Firebase)
+        createFirebaseUser(entity);
+
         return mapper.toResponse(userRepository.save(entity));
+    }
+
+    /**
+     * Cria o usuário no Firebase Auth usando Firebase Admin SDK.
+     * Se o Firebase não estiver configurado (firebaseEnabled=false), apenas loga e continua.
+     */
+    private void createFirebaseUser(UserEntity user) {
+        FirebaseAdminService firebaseService = firebaseAdminServiceProvider.getIfAvailable();
+        if (firebaseService == null) {
+            log.debug("Firebase Admin Service não disponível (firebase-enabled=false), pulando criação no Firebase");
+            return;
+        }
+
+        try {
+            String firebaseUid = firebaseService.resolveOrCreateFirebaseUid(
+                    user.getEmail(),
+                    user.getName(),
+                    null // senha gerenciada pelo Firebase SDK no frontend
+            );
+            user.setFirebaseUid(firebaseUid);
+            log.info("Usuário '{}' criado/vinculado no Firebase Auth com UID '{}'",
+                    user.getEmail(), firebaseUid);
+        } catch (FirebaseAuthException e) {
+            log.error("Falha ao criar usuário '{}' no Firebase Auth: {}", user.getEmail(), e.getMessage());
+            // Não bloqueia o cadastro no PostgreSQL — sincronização posterior pode ser feita
+            log.warn("Usuário criado no PostgreSQL mas não no Firebase. "
+                    + "Use POST /api/v1/admin/firebase/link para vincular posteriormente.");
+        }
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -123,6 +159,10 @@ public class AuthService implements UserLookup {
         entity.setPasswordHash(passwordEncoder.encode(request.password()));
         entity.setRole(request.role());
         entity.setStatus(UserStatus.ACTIVE);
+
+        // Cadastra usuário no Firebase Auth
+        createFirebaseUser(entity);
+
         if (request.firebaseUid() != null && !request.firebaseUid().isBlank()) {
             entity.setFirebaseUid(request.firebaseUid().trim());
         }
