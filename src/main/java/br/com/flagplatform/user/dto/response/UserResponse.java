@@ -17,6 +17,10 @@ public record UserResponse(
         /** UID do Firebase Auth vinculado (null para usuários pré-migração). */
         String firebaseUid,
         /** Skills do usuário (athlete, coach, referee, manager). */
-        List<String> skills
+        List<String> skills,
+        /** ID da organização à qual o usuário pertence (sincronizado com Firebase custom claims). */
+        UUID organizationId,
+        /** ID do clube ao qual o usuário está vinculado (sincronizado com Firebase custom claims). */
+        UUID clubId
 ) {
 }
