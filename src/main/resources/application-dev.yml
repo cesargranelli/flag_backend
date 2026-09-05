@@ -26,6 +26,9 @@ app:
     # Issue #8: venues espelham no Firestore (persistência dual) quando true —
     # default ON no perfil dev.
     venue: ${FIRESTORE_VENUE_ENABLED:true}
+    # Issue #9: campeonatos espelham no Firestore (persistência dual) quando true —
+    # default ON no perfil dev.
+    competition: ${FIRESTORE_COMPETITION_ENABLED:true}
 
 logging:
   level:

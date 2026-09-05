@@ -16,7 +16,7 @@ import br.com.flagplatform.competition.exception.CompetitionNotFinishableExcepti
 import br.com.flagplatform.competition.exception.CompetitionNotOwnedByCreatorException;
 import br.com.flagplatform.competition.exception.DuplicateCompetitionNameException;
 import br.com.flagplatform.competition.mapper.CompetitionMapper;
-import br.com.flagplatform.competition.repository.CompetitionRepository;
+import br.com.flagplatform.competition.repository.CompetitionStore;
 import br.com.flagplatform.competition.CompetitionCreatedEvent;
 import br.com.flagplatform.organization.OrganizationLookup;
 import br.com.flagplatform.user.UserLookup;
@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 public class CompetitionService implements CompetitionLookup {
 
     private final CompetitionMapper mapper;
-    private final CompetitionRepository repository;
+    private final CompetitionStore repository;
     private final OrganizationLookup organizationLookup;
     private final UserLookup userLookup;
     private final ApplicationEventPublisher events;
