@@ -61,18 +61,30 @@ O Flag Platform precisa de uma arquitetura backend que suporte:
 ## Fluxo de Dados
 
 ```
-Flutter Web
+Flag Admin Web (flag_admin_web)
     │
-    ├──→ Firebase Auth (login/logout)
+    ├──→ Firebase Auth (login/logout — ÚNICO acesso direto ao Firebase)
     │
-    └──→ Java API REST
+    └──→ Java API REST (todas as demais operações — listagens, detalhes e escrita)
               │
               ├──→ Regras de negócio (eligibility, standings)
               │
-              └──→ Firebase Firestore (leitura/escrita)
+              └──→ Firebase Firestore (leitura/escrita via backend/Admin SDK)
                         │
                         └──→ Firebase Storage (imagens)
+
+App do torcedor / árbitro (public_app, referee_app)
+    │
+    ├──→ Firebase Auth (login)
+    ├──→ Firebase Firestore (leitura realtime — via espelho do backend)
+    │
+    └──→ Java API REST (operações de escrita)
 ```
+
+> **Regra (2026-09-05):** o Admin Web acessa o Firebase **somente para autenticação**
+> (Firebase Auth). **Todos os demais cenários passam pelo backend (REST) sempre** — o Admin
+> Web nunca lê nem escreve no Firestore diretamente. O Firestore é espelho de leitura realtime
+> **apenas** para os apps (public_app/referee_app); o backend segue como única porta de escrita.
 
 ## Consequências
 

@@ -24,18 +24,23 @@ negócio, controllers, JPA ou Flyway.
 2. **Escrita única via Java REST**: o **cliente web NÃO escreve direto no Firestore**. Toda
    escrita passa pelo backend (Admin SDK). O Firestore é persistência/leitura (realtime) para
    os apps (referee_app, public_app), nunca porta de escrita do cliente.
-3. **Padrão porta de repositório**: interface-base genérica
+3. **Admin Web lê somente via REST**: o Admin Web (flag_admin_web) lê listagens/detalhes
+   **exclusivamente** pela API REST do backend — exceto **Firebase Auth** para login. Ele NÃO
+   consome o Firestore diretamente (nem leitura). O Firestore é espelho de leitura realtime
+   **apenas** para os apps (public_app/referee_app); o backend continua sendo a única porta de
+   escrita (Admin SDK). Nenhuma etapa futura troca datasource do Admin Web para Firestore.
+4. **Padrão porta de repositório**: interface-base genérica
    `br.com.flagplatform.common.firebase.FirestoreRepository<T>` (`findById`, `findAll`,
    `save`, `delete`). Domínios migrados implementam:
    `XxxFirestoreRepository implements XxxRepository, FirestoreRepository<XxxEntity>` com
    `@ConditionalOnProperty(name = "app.firestore.<domínio>", havingValue = "true")`.
    A interface `XxxRepository` (JPA) não muda; a troca de implementação é transparente para o service.
-4. **Emulador no perfil dev**: `FirestoreFactory` cria o bean `Firestore` apenas quando
+5. **Emulador no perfil dev**: `FirestoreFactory` cria o bean `Firestore` apenas quando
    `app.firestore.enabled=true` (`@ConditionalOnProperty`). Com host de emulador configurado,
    usa `FirestoreOptions.setEmulatorHost(...)` + `EmulatorCredentials` (sem credencial real).
    Sem host, usa a API real com service account (`FIREBASE_SERVICE_ACCOUNT` /
    `GOOGLE_APPLICATION_CREDENTIALS` / ADC).
-5. **Regras de segurança Firestore**: leitura pública/autenticada por regras; escrita SOMENTE
+6. **Regras de segurança Firestore**: leitura pública/autenticada por regras; escrita SOMENTE
    via Admin SDK (Java). Regras a publicar junto com o primeiro domínio migrado.
 
 ## Configuração (env vars)
