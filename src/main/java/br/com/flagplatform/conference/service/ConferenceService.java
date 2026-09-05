@@ -10,8 +10,8 @@ import br.com.flagplatform.conference.entity.ConferenceEntity;
 import br.com.flagplatform.conference.exception.ConferenceNotFoundException;
 import br.com.flagplatform.conference.exception.DuplicateConferenceNameException;
 import br.com.flagplatform.conference.mapper.ConferenceMapper;
-import br.com.flagplatform.conference.repository.ConferenceRepository;
-import br.com.flagplatform.division.repository.DivisionRepository;
+import br.com.flagplatform.conference.repository.ConferenceStore;
+import br.com.flagplatform.division.repository.DivisionStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +25,8 @@ import java.util.UUID;
 public class ConferenceService implements ConferenceLookup {
 
     private final ConferenceMapper mapper;
-    private final ConferenceRepository repository;
-    private final DivisionRepository divisionRepository;
+    private final ConferenceStore repository;
+    private final DivisionStore divisionStore;
     private final CompetitionLookup competitionLookup;
 
     @Transactional
@@ -82,7 +82,7 @@ public class ConferenceService implements ConferenceLookup {
         competitionLookup.assertEditable(entity.getCompetitionId());
 
         // Issue #340: remove as divisões vinculadas à conferência antes da conferência em si.
-        divisionRepository.deleteAll(divisionRepository.findAllByConferenceId(id));
+        divisionStore.deleteAll(divisionStore.findAllByConferenceId(id));
         repository.delete(entity);
     }
 

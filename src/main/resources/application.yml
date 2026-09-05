@@ -92,6 +92,10 @@ app:
     venue: ${FIRESTORE_VENUE_ENABLED:false}
     # Issue #9: campeonatos espelham no Firestore quando true.
     competition: ${FIRESTORE_COMPETITION_ENABLED:false}
+    # Issue #10: conferências espelham no Firestore quando true.
+    conference: ${FIRESTORE_CONFERENCE_ENABLED:false}
+    # Issue #10: divisões espelham no Firestore quando true.
+    division: ${FIRESTORE_DIVISION_ENABLED:false}
 
 springdoc:
   api-docs:

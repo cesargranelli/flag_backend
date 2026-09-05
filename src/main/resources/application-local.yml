@@ -24,6 +24,10 @@ app:
     venue: ${FIRESTORE_VENUE_ENABLED:false}
     # Domínio competition também OFF no perfil local (padrão = sem espelho).
     competition: ${FIRESTORE_COMPETITION_ENABLED:false}
+    # Domínio conference também OFF no perfil local (padrão = sem espelho).
+    conference: ${FIRESTORE_CONFERENCE_ENABLED:false}
+    # Domínio division também OFF no perfil local (padrão = sem espelho).
+    division: ${FIRESTORE_DIVISION_ENABLED:false}
 
 logging:
   level:

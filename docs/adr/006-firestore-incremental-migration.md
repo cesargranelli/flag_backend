@@ -43,6 +43,40 @@ negócio, controllers, JPA ou Flyway.
 6. **Regras de segurança Firestore**: leitura pública/autenticada por regras; escrita SOMENTE
    via Admin SDK (Java). Regras a publicar junto com o primeiro domínio migrado.
 
+## Modelagem no Firestore: flat vs aninhada (Issue #10)
+
+Para os domínios migrados até aqui (organization/issue #7, venue/issue #8,
+competition/issue #9 e agora conference/division na issue #10), a modelagem adotada é
+**flat**: cada domínio tem **coleção própria no nível raiz** (`organizations`, `venues`,
+`competitions`, `conferences`, `divisions`) e o documento é identificado pelo
+`UUID.toString()` da entidade JPA. Relacionamentos são expressos por **campos de
+referência** — a conferência carrega `competitionId`; a divisão carrega `competitionId` e,
+opcionalmente, `conferenceId` — nunca por subcoleções aninhadas
+(ex.: {`competitions/{id}/conferences/...`}).
+
+**Decisão para conference/division: flat (coleções próprias)**, coerente com o padrão já
+estabelecido. Justificativa:
+
+1. **Uniformidade com o padrão existente**: org/venue/competition já usam coleções próprias
+   flat; manter conference/division no mesmo formato dá um único padrão de código, regras de
+   segurança e consultas nos apps.
+2. **Document id universal**: o documento usa o mesmo UUID da entidade JPA (fonte de
+   verdade). Em modelagem aninhada, o caminho do documento ficaria subordinado ao id da
+   competição, complicando referências cruzadas (uma divisão pertence a uma conferência
+   opcional e sempre a uma competição).
+3. **Escritas independentes e idempotentes**: conferência e divisão são criadas/atualizadas/
+   excluídas individualmente; a modelagem flat espelha cada operação da porta de repositório
+   sem reescrever subárvores inteiras (evita gravação em cascata e risco de divergência).
+4. **Consultas dos apps**: os apps leem conferências por `competitionId` e divisões por
+   `competitionId`/`conferenceId` — no Firestore isso é uma query simples por campo
+   (`where("competitionId", "==", id)`), sem composite paths.
+5. **Regras de segurança simples**: uma coleção por domínio com leitura pública/autenticada é
+   mais fácil de auditar do que regras por caminho aninhado.
+
+**Consequência**: o documento Firestore reflete os mesmos campos camelCase da API REST
+(UUIDs como string, timestamps ISO-8601), mantendo o espelho consumível pelos apps
+(referee_app/public_app) sem transformação adicional.
+
 ## Configuração (env vars)
 
 | Variável | Default | Uso |
