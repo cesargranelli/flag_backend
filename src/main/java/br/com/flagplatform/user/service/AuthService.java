@@ -64,7 +64,7 @@ public class AuthService implements UserLookup {
         UserEntity entity = mapper.toEntity(request);
         entity.setEmail(email);
         entity.setPasswordHash(passwordEncoder.encode(request.password()));
-        entity.setRole(UserRole.ORGANIZER);
+        entity.setRole(UserRole.ORG_ADMIN);
         entity.setStatus(UserStatus.PENDING);
 
         return mapper.toResponse(userRepository.save(entity));
@@ -105,7 +105,7 @@ public class AuthService implements UserLookup {
     @Override
     public boolean isAdminByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(normalize(email))
-                .map(user -> user.getRole() == UserRole.ADMIN)
+                .map(user -> user.getRole() == UserRole.SUPER_ADMIN)
                 .orElse(false);
     }
 

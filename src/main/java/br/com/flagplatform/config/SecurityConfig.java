@@ -66,9 +66,9 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/prometheus").permitAll()
                         // Cadastro e login públicos
                         .requestMatchers(HttpMethod.POST, PUBLIC_AUTH_PATTERNS).permitAll()
-                        // Check-in de atletas exige role MESA/ADMIN (não é leitura pública)
+                        // Check-in de atletas exige role SUPER_ADMIN/ORG_ADMIN/MANAGER
                         .requestMatchers(HttpMethod.GET, "/api/v1/games/*/checkin")
-                                .hasAnyRole("ADMIN", "MESA")
+                                .hasAnyRole("SUPER_ADMIN", "ORG_ADMIN", "MANAGER")
                         // Leitura pública para todas as entidades
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET_PATTERNS).permitAll()
                         // Escrita exige autenticação

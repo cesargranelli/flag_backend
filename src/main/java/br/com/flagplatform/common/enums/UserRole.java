@@ -5,9 +5,10 @@ import lombok.Getter;
 @Getter
 public enum UserRole implements PersistableEnum {
 
-    ADMIN("ADMIN", "Administrador"),
-    ORGANIZER("ORGANIZER", "Organizador"),
-    MESA("MESA", "Mesa");
+    SUPER_ADMIN("SUPER_ADMIN", "Super Administrador"),
+    ORG_ADMIN("ORGANIZER", "Organizador"),
+    MANAGER("MANAGER", "Gerente"),
+    USER("USER", "Usuário");
 
     private final String code;
     private final String description;

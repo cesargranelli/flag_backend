@@ -34,8 +34,8 @@ public class StagingDataSeeder implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         List<UserEntity> applied = new ArrayList<>();
-        seed("organizer@flag.test", "Organizador Staging", "Organizer@123", UserRole.ORGANIZER, applied);
-        seed("admin@flag.test", "Admin Staging", "Admin@123", UserRole.ADMIN, applied);
+        seed("organizer@flag.test", "Organizador Staging", "Organizer@123", UserRole.ORG_ADMIN, applied);
+        seed("admin@flag.test", "Admin Staging", "Admin@123", UserRole.SUPER_ADMIN, applied);
 
         if (!applied.isEmpty()) {
             log.info("Usuários de staging aplicados ({} itens): {}", applied.size(),
