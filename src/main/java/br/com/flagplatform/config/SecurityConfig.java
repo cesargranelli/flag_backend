@@ -1,7 +1,9 @@
 package br.com.flagplatform.config;
 
+import br.com.flagplatform.security.FirebaseIdTokenFilter;
 import br.com.flagplatform.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -23,6 +25,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ObjectProvider<FirebaseIdTokenFilter> firebaseIdTokenFilterProvider;
 
     private static final String[] PUBLIC_GET_PATTERNS = {
             "/api/v1/organizations/**",
@@ -74,7 +77,13 @@ public class SecurityConfig {
                         // Escrita exige autenticação
                         .anyRequest().authenticated()
                 )
+                // Migração JWT custom → Firebase Auth (issue #19, fase 1).
+                // FirebaseIdTokenFilter só existe quando app.auth.firebase-enabled=true.
+                // Ordem: Firebase primeiro (se presente), JWT legacy depois — fallback
+                // para usuários que ainda não migraram o firebase_uid.
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        firebaseIdTokenFilterProvider.ifAvailable(filter ->
+                http.addFilterBefore(filter, JwtAuthenticationFilter.class));
 
         return http.build();
     }

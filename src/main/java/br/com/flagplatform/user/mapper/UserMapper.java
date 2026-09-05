@@ -12,8 +12,12 @@ import java.util.List;
 public interface UserMapper {
 
     @Mapping(target = "passwordHash", source = "password")
+    @Mapping(target = "firebaseUid", ignore = true)
+    @Mapping(target = "skills", ignore = true)
     UserEntity toEntity(RegisterRequest request);
 
+    @Mapping(target = "firebaseUid", source = "entity.firebaseUid")
+    @Mapping(target = "skills", source = "entity.skills")
     UserResponse toResponse(UserEntity entity);
 
     List<UserResponse> toResponseList(List<UserEntity> entities);
