@@ -15,11 +15,12 @@ spring:
 
 app:
   firestore:
-    # Perfil dev usa o EMULADOR local do Firestore (default ON).
-    # Porta 9090 por padrão para não conflitar com o backend (8080).
-    # Para usar outra porta, exporte FIRESTORE_EMULATOR_HOST antes de subir.
+    # Perfil dev usa o FIRESTORE REAL do projeto flag-platform (default database "(default)").
+    # Sem FIRESTORE_EMULATOR_HOST, o FirestoreFactory resolve credenciais via
+    # FIREBASE_SERVICE_ACCOUNT (caminho do JSON), GOOGLE_APPLICATION_CREDENTIALS ou ADC.
+    # Emulador é OPCIONAL: exporte FIRESTORE_EMULATOR_HOST (ex.: localhost:9090) antes de subir.
     enabled: ${FIRESTORE_ENABLED:true}
-    emulator-host: ${FIRESTORE_EMULATOR_HOST:localhost:9090}
+    emulator-host: ${FIRESTORE_EMULATOR_HOST:}
     # Domínio piloto do ADR-006 (issue #7): organizações espelham no Firestore
     # (persistência dual) quando a flag está true — default ON no perfil dev.
     organization: ${FIRESTORE_ORGANIZATION_ENABLED:true}
