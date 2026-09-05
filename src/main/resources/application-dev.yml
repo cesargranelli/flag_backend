@@ -23,6 +23,9 @@ app:
     # Domínio piloto do ADR-006 (issue #7): organizações espelham no Firestore
     # (persistência dual) quando a flag está true — default ON no perfil dev.
     organization: ${FIRESTORE_ORGANIZATION_ENABLED:true}
+    # Issue #8: venues espelham no Firestore (persistência dual) quando true —
+    # default ON no perfil dev.
+    venue: ${FIRESTORE_VENUE_ENABLED:true}
 
 logging:
   level:
