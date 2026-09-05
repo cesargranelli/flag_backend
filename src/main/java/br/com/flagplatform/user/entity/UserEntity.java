@@ -15,6 +15,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -50,6 +51,21 @@ public class UserEntity extends BaseEntity {
      */
     @Column(name = "firebase_uid", unique = true)
     private String firebaseUid;
+
+    /**
+     * ID da organização à qual o usuário pertence. Usado para controle de acesso
+     * no contexto de organização e sincronizado com as custom claims do Firebase
+     * (organization_id).
+     */
+    @Column(name = "organization_id")
+    private UUID organizationId;
+
+    /**
+     * ID do clube à qual o usuário está vinculado. Usado para controle de acesso
+     * no contexto de clube e sincronizado com as custom claims do Firebase (club_id).
+     */
+    @Column(name = "club_id")
+    private UUID clubId;
 
     /**
      * Skills do usuário no contexto do Flag Football. Preenchido via custom claims

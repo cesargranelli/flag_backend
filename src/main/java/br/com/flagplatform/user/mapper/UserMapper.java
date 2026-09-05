@@ -14,10 +14,14 @@ public interface UserMapper {
     @Mapping(target = "passwordHash", source = "password")
     @Mapping(target = "firebaseUid", ignore = true)
     @Mapping(target = "skills", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
+    @Mapping(target = "clubId", ignore = true)
     UserEntity toEntity(RegisterRequest request);
 
     @Mapping(target = "firebaseUid", source = "entity.firebaseUid")
     @Mapping(target = "skills", source = "entity.skills")
+    @Mapping(target = "organizationId", source = "entity.organizationId")
+    @Mapping(target = "clubId", source = "entity.clubId")
     UserResponse toResponse(UserEntity entity);
 
     List<UserResponse> toResponseList(List<UserEntity> entities);
