@@ -30,10 +30,14 @@ import java.nio.file.Path;
  *
  * <h2>Configuração por ambiente</h2>
  * <ul>
- *   <li><b>Emulador local (perfil {@code dev})</b>: ativado quando o host do emulador é
- *       resolvido. Resolução em ordem: propriedade {@code app.firestore.emulator-host}
- *       (application-dev.yml → {@code ${FIRESTORE_EMULATOR_HOST:localhost:9090}}) e depois
- *       a env var {@code FIRESTORE_EMULATOR_HOST}. Neste modo as credenciais são fictícias
+ *   <li><b>Perfil {@code dev} — Firestore real (default)</b>: sem host de emulador, conecta no
+ *       Cloud Firestore do projeto {@code flag-platform} (default database {@code (default)}).
+ *       Credenciais exigidas: {@code FIREBASE_SERVICE_ACCOUNT} (caminho do JSON),
+ *       {@code GOOGLE_APPLICATION_CREDENTIALS} ou Application Default Credentials.
+ *       Emulador é opcional: exporte {@code FIRESTORE_EMULATOR_HOST} (ex. {@code localhost:9090})
+ *       antes de subir — application-dev.yml repassa a env via
+ *       {@code app.firestore.emulator-host} ({@code ${FIRESTORE_EMULATOR_HOST:}}), e a resolução
+ *       continua na ordem propriedade → env var. Neste modo as credenciais são fictícias
  *       ({@link EmulatorCredentials}) e o host é passado via
  *       {@link FirestoreOptions.Builder#setEmulatorHost(String)}.</li>
  *   <li><b>API real do Firebase (prod)</b>: sem host de emulador. Credenciais vindas de
