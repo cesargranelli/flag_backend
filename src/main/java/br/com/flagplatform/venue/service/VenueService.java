@@ -9,7 +9,7 @@ import br.com.flagplatform.venue.dto.response.VenueResponse;
 import br.com.flagplatform.venue.entity.VenueEntity;
 import br.com.flagplatform.venue.exception.VenueNotFoundException;
 import br.com.flagplatform.venue.mapper.VenueMapper;
-import br.com.flagplatform.venue.repository.VenueRepository;
+import br.com.flagplatform.venue.repository.VenueStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,7 +25,7 @@ import java.util.UUID;
 public class VenueService implements VenueLookup {
 
     private final VenueMapper mapper;
-    private final VenueRepository repository;
+    private final VenueStore repository;
 
     @Transactional
     public VenueResponse create(CreateVenueRequest request) {
