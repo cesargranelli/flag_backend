@@ -1,8 +1,10 @@
 spring:
   datasource:
-    url: jdbc:postgresql://flagplatform-db.cu9suum4un24.us-east-1.rds.amazonaws.com:5432/postgres #flagplatform-db
-    username: postgres #fl49Pl4tf0rm
-    password: fl49Pl4tf0rm
+    # Dev usa o PostgreSQL local (mesmo acesso do perfil local) — o RDS de
+    # produção não fica exposto na rede de desenvolvimento.
+    url: jdbc:postgresql://localhost:5432/flagplatform
+    username: flagplatform
+    password: flagplatform
 
   jpa:
     show-sql: true
@@ -19,6 +21,8 @@ app:
     # Sem FIRESTORE_EMULATOR_HOST, o FirestoreFactory resolve credenciais via
     # FIREBASE_SERVICE_ACCOUNT (caminho do JSON), GOOGLE_APPLICATION_CREDENTIALS ou ADC.
     # Emulador é OPCIONAL: exporte FIRESTORE_EMULATOR_HOST (ex.: localhost:9090) antes de subir.
+    # A persistência é DUAL no dev: PostgreSQL local (fonte de verdade) + espelho Firestore
+    # nos domínios migrados (ADR-006), com flags por domínio abaixo.
     enabled: ${FIRESTORE_ENABLED:true}
     emulator-host: ${FIRESTORE_EMULATOR_HOST:}
     # Domínio piloto do ADR-006 (issue #7): organizações espelham no Firestore
