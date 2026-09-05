@@ -17,6 +17,7 @@ import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.UserRecord;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,6 +59,7 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
+@ConditionalOnProperty(name = "app.auth.firebase-enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class FirebaseAdminService {

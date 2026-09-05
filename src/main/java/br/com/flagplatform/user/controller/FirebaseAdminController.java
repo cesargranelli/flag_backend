@@ -5,6 +5,7 @@ import br.com.flagplatform.user.dto.request.SetCustomClaimsRequest;
 import br.com.flagplatform.user.dto.response.FirebaseLinkResponse;
 import br.com.flagplatform.user.dto.response.FirebaseStatusResponse;
 import br.com.flagplatform.user.service.FirebaseAdminService;
+import org.springframework.beans.factory.ObjectProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -48,10 +49,12 @@ import java.util.UUID;
 )
 @RequestMapping("/api/v1/admin/users")
 @RestController
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        name = "app.auth.firebase-enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class FirebaseAdminController {
 
-    private final FirebaseAdminService firebaseAdminService;
+    private final ObjectProvider<FirebaseAdminService> firebaseAdminServiceProvider;
 
     /**
      * Vincula um usuário PostgreSQL a uma conta Firebase Auth existente ou cria uma nova.
@@ -95,7 +98,7 @@ public class FirebaseAdminController {
     public FirebaseLinkResponse linkFirebase(
             @Parameter(description = "UUID do usuário no PostgreSQL")
             @PathVariable UUID id) {
-        return firebaseAdminService.linkUser(id);
+        return firebaseAdminServiceProvider.getObject().linkUser(id);
     }
 
     /**
@@ -154,7 +157,7 @@ public class FirebaseAdminController {
             @Parameter(description = "UUID do usuário no PostgreSQL")
             @PathVariable UUID id,
             @Valid @RequestBody SetCustomClaimsRequest request) {
-        return firebaseAdminService.setCustomClaims(id, request);
+        return firebaseAdminServiceProvider.getObject().setCustomClaims(id, request);
     }
 
     /**
@@ -196,6 +199,6 @@ public class FirebaseAdminController {
     public FirebaseStatusResponse getFirebaseStatus(
             @Parameter(description = "UUID do usuário no PostgreSQL")
             @PathVariable UUID id) {
-        return firebaseAdminService.getStatus(id);
+        return firebaseAdminServiceProvider.getObject().getStatus(id);
     }
 }
