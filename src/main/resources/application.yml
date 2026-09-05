@@ -88,6 +88,8 @@ app:
     # app.firestore.enabled=true (bean Firestore ativo via FirestoreFactory).
     # Issue #7 (piloto): organização espelha no Firestore quando true.
     organization: ${FIRESTORE_ORGANIZATION_ENABLED:false}
+    # Issue #8: campos espelham no Firestore quando true.
+    venue: ${FIRESTORE_VENUE_ENABLED:false}
 
 springdoc:
   api-docs:
