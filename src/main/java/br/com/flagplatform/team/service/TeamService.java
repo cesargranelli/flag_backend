@@ -78,8 +78,8 @@ public class TeamService implements TeamLookup {
 
     @Transactional
     public void delete(UUID id, String currentUserEmail) {
-        TeamEntity entity = findEntityById(id);
-        teamRepository.delete(entity);
+        findEntityById(id); // verifica que existe
+        teamRepository.softDeleteById(id);
     }
 
     @Transactional
@@ -131,7 +131,7 @@ public class TeamService implements TeamLookup {
                 .findByCompetitionIdAndTeamId(competitionId, teamId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Inscrição do time " + teamId + " na competição " + competitionId + " não encontrada"));
-        competitionTeamRepository.delete(entity);
+        competitionTeamRepository.softDeleteById(entity.getId());
     }
 
     public List<CompetitionTeamResponse> findByCompetitionId(UUID competitionId) {

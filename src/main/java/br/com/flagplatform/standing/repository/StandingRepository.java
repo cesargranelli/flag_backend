@@ -1,7 +1,7 @@
 package br.com.flagplatform.standing.repository;
 
+import br.com.flagplatform.common.persistence.repository.SoftDeleteRepository;
 import br.com.flagplatform.standing.entity.StandingEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface StandingRepository extends JpaRepository<StandingEntity, UUID> {
+public interface StandingRepository extends SoftDeleteRepository<StandingEntity, UUID> {
 
     List<StandingEntity> findAllByCompetitionId(UUID competitionId);
 

@@ -17,6 +17,9 @@ import java.util.UUID;
  * <p>As leituras sempre vêm do PostgreSQL (fonte de verdade); o Firestore é o
  * espelho/realtime para os apps. Regras de negócio e contrato REST ficam intactos
  * no service — ele conhece apenas esta porta.
+ *
+ * <p>Exclusão é lógica (soft delete): marca {@code deletedAt} no JPA; espelha a
+ * deleção no Firestore (a coleção mantém histórico).
  */
 public interface ConferenceStore {
 
@@ -30,6 +33,9 @@ public interface ConferenceStore {
 
     boolean existsByCompetitionIdAndNameIgnoreCaseAndIdNot(UUID competitionId, String name, UUID id);
 
+    /**
+     * Soft delete: marca a conferência como excluída (deletedAt). Não remove o registro.
+     */
     void delete(ConferenceEntity entity);
 
 }

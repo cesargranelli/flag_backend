@@ -22,7 +22,9 @@ import java.util.UUID;
  * antes de espelhar no Firestore — o documento espelho reflete exatamente o que o
  * Postgres registrou. Se o Firestore falhar, a exceção propaga e a transação JPA
  * faz rollback (persistência dual fail-fast: ou grava nas duas, ou em nenhuma).
- * A exclusão segue o mesmo princípio: apaga no JPA e remove o espelho no Firestore.
+ *
+ * <p>A exclusão é lógica (soft delete): marca {@code deletedAt} no JPA e regrava o
+ * documento no Firestore com o novo {@code deletedAt} (a coleção mantém histórico).
  */
 @Slf4j
 @Component
@@ -64,9 +66,10 @@ public class DualConferenceStore implements ConferenceStore {
 
     @Override
     public void delete(ConferenceEntity entity) {
-        jpaRepository.delete(entity);
-        firestoreRepository.delete(entity.getId().toString());
-        log.debug("Conference removida do dual store (id={})", entity.getId());
+        jpaRepository.softDeleteById(entity.getId());
+        jpaRepository.findById(entity.getId())
+                .ifPresent(updated -> firestoreRepository.save(mapper.toDocument(updated)));
+        log.debug("Conference soft-deletada do dual store (id={})", entity.getId());
     }
 
 }

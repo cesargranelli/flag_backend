@@ -22,7 +22,9 @@ import java.util.UUID;
  * antes de espelhar no Firestore — o documento espelho reflete exatamente o que o
  * Postgres registrou. Se o Firestore falhar, a exceção propaga e a transação JPA
  * faz rollback (persistência dual fail-fast: ou grava nas duas, ou em nenhuma).
- * A exclusão segue o mesmo princípio: apaga no JPA e remove o espelho no Firestore.
+ *
+ * <p>A exclusão é lógica (soft delete): marca {@code deletedAt} no JPA e regrava o
+ * documento no Firestore com o novo {@code deletedAt} (a coleção mantém histórico).
  */
 @Slf4j
 @Component
@@ -84,18 +86,17 @@ public class DualDivisionStore implements DivisionStore {
 
     @Override
     public void delete(DivisionEntity entity) {
-        jpaRepository.delete(entity);
-        firestoreRepository.delete(entity.getId().toString());
-        log.debug("Division removida do dual store (id={})", entity.getId());
+        jpaRepository.softDeleteById(entity.getId());
+        // Re-busca a entidade já com o novo deletedAt para refletir no Firestore
+        jpaRepository.findById(entity.getId())
+                .ifPresent(updated -> firestoreRepository.save(mapper.toDocument(updated)));
+        log.debug("Division soft-deletada do dual store (id={})", entity.getId());
     }
 
     @Override
     public void deleteAll(Iterable<DivisionEntity> entities) {
-        jpaRepository.deleteAll(entities);
-        for (DivisionEntity entity : entities) {
-            firestoreRepository.delete(entity.getId().toString());
-        }
-        log.debug("Division(s) removida(s) do dual store");
+        entities.forEach(this::delete);
+        log.debug("Division(s) soft-deletada(s) do dual store");
     }
 
 }

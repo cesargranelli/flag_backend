@@ -14,6 +14,9 @@ import java.util.UUID;
  * integralmente ao repositório JPA/PostgreSQL atual. Vigora enquanto
  * {@code app.firestore.conference} estiver {@code false} (ou ausente) — ou seja,
  * comportamento 100% igual ao anterior à migração (ADR-006).
+ *
+ * <p>A exclusão é lógica (soft delete): chama {@code softDeleteById} no JPA
+ * (marca {@code deletedAt}).
  */
 @Component
 @RequiredArgsConstructor
@@ -49,7 +52,7 @@ public class JpaConferenceStore implements ConferenceStore {
 
     @Override
     public void delete(ConferenceEntity entity) {
-        repository.delete(entity);
+        repository.softDeleteById(entity.getId());
     }
 
 }

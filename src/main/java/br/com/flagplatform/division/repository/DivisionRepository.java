@@ -1,14 +1,14 @@
 package br.com.flagplatform.division.repository;
 
+import br.com.flagplatform.common.persistence.repository.SoftDeleteRepository;
 import br.com.flagplatform.division.entity.DivisionEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface DivisionRepository extends JpaRepository<DivisionEntity, UUID> {
+public interface DivisionRepository extends SoftDeleteRepository<DivisionEntity, UUID> {
 
     List<DivisionEntity> findAllByCompetitionIdOrderByNameAsc(UUID competitionId);
 

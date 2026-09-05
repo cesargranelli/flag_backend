@@ -151,7 +151,7 @@ public class RosterService implements RosterLookup {
         RosterEntryEntity entity = rosterEntryRepository.findByRosterIdAndAthleteId(roster.getId(), athleteId)
                 .orElseThrow(() -> new RosterEntryNotFoundException(teamId, athleteId));
 
-        rosterEntryRepository.delete(entity);
+        rosterEntryRepository.softDeleteById(entity.getId());
     }
 
     @Transactional

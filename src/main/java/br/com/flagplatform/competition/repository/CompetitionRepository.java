@@ -1,17 +1,17 @@
 package br.com.flagplatform.competition.repository;
 
 import br.com.flagplatform.common.enums.CompetitionStatus;
+import br.com.flagplatform.common.persistence.repository.SoftDeleteRepository;
 import br.com.flagplatform.competition.entity.CompetitionEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface CompetitionRepository extends JpaRepository<CompetitionEntity, UUID> {
+public interface CompetitionRepository extends SoftDeleteRepository<CompetitionEntity, UUID> {
 
     List<CompetitionEntity> findAllByOrganizationIdOrderByNameAsc(UUID organizationId);
 

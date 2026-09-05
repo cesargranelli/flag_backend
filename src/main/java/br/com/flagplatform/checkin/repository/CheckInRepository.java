@@ -1,13 +1,15 @@
 package br.com.flagplatform.checkin.repository;
 
 import br.com.flagplatform.checkin.entity.CheckInEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
+import br.com.flagplatform.common.persistence.repository.SoftDeleteRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface CheckInRepository extends JpaRepository<CheckInEntity, UUID> {
+@Repository
+public interface CheckInRepository extends SoftDeleteRepository<CheckInEntity, UUID> {
 
     List<CheckInEntity> findAllByGameId(UUID gameId);
 

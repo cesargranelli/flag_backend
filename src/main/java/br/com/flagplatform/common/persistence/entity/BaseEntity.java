@@ -15,7 +15,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @MappedSuperclass
-public abstract class BaseEntity {
+public abstract class BaseEntity implements SoftDeletable {
 
     @Id
     @GeneratedValue
@@ -29,6 +29,14 @@ public abstract class BaseEntity {
     private UUID createdBy;
 
     private UUID updatedBy;
+
+    /**
+     * Soft delete: marca o instante em que o registro foi logicamente excluído.
+     * null = ativo. Não-nulo = excluído (Firestore mantém para histórico e
+     * sincronização — ADR-006).
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @PrePersist
     protected void onCreate() {

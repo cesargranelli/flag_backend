@@ -2,10 +2,10 @@ package br.com.flagplatform.organization.repository;
 
 import br.com.flagplatform.common.enums.OrganizationStatus;
 import br.com.flagplatform.common.enums.OrganizationType;
+import br.com.flagplatform.common.persistence.repository.SoftDeleteRepository;
 import br.com.flagplatform.organization.entity.OrganizationEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface OrganizationRepository extends JpaRepository<OrganizationEntity, UUID> {
+public interface OrganizationRepository extends SoftDeleteRepository<OrganizationEntity, UUID> {
 
     boolean existsByTradeNameIgnoreCase(String tradeName);
 
