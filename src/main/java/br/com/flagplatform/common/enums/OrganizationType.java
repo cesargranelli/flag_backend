@@ -6,8 +6,8 @@ import lombok.Getter;
 public enum OrganizationType implements PersistableEnum {
 
     FEDERATION("FEDERATION", "Federation"),
-    LEAGUE("LEAGUE", "League"),
     ASSOCIATION("ASSOCIATION", "Association"),
+    LEAGUE("LEAGUE", "League"),
     UNIVERSITY("UNIVERSITY", "University"),
     CLUB("CLUB", "Club"),
     OTHER("OTHER", "Other");
