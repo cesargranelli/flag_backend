@@ -29,6 +29,10 @@ public final class SecurityExpressions {
      */
     public static final String CLUB_MANAGER = "hasAuthority('STATUS_ACTIVE') and hasAnyRole('ADMIN', 'ADMIN_LIGA', 'CLUB_MANAGER')";
 
+    public static final String ORGANIZATION_WRITE = "hasAuthority('STATUS_ACTIVE') and hasAnyRole('ORGANIZER','ADMIN','ADMIN_LIGA')";
+
+    public static final String INSTITUTION_WRITE = "hasAuthority('STATUS_ACTIVE') and hasAnyRole('ORGANIZER','MANAGER','ADMIN','ADMIN_LIGA')";
+
     /**
      * Exige usuário com status ACTIVE (bloqueia PENDING de escrita).
      */
