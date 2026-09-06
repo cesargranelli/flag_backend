@@ -78,6 +78,8 @@ public class AuthService implements UserLookup {
                 log.info("Usuário criado no Firebase Auth: uid={}, email={}", firebaseUid, email);
             } catch (FirebaseAuthException ex) {
                 log.error("Falha ao criar usuário no Firebase Auth: {}", ex.getMessage());
+                log.error("Verifique se o arquivo de service account Firebase é válido (JSON) " +
+                        "e se o project-id está correto. ErrorCode: {}", ex.getErrorCode());
                 throw new InvalidCredentialsException();
             }
         }
