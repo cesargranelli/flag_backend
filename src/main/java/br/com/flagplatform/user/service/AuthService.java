@@ -19,12 +19,9 @@ import br.com.flagplatform.user.exception.InvalidCredentialsException;
 import br.com.flagplatform.user.exception.UserNotFoundException;
 import br.com.flagplatform.user.mapper.UserMapper;
 import br.com.flagplatform.user.repository.UserRepository;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthException;
-import com.google.firebase.auth.UserRecord;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,9 +42,6 @@ public class AuthService implements UserLookup {
     private final UserMapper mapper;
     private final TokenProvider tokenProvider;
 
-    @Autowired(required = false)
-    private FirebaseAuth firebaseAuth;
-
     @Value("${app.security.default-role:ADMIN_LIGA}")
     private String defaultRole;
 
@@ -59,41 +53,34 @@ public class AuthService implements UserLookup {
             throw new EmailAlreadyExistsException(email);
         }
 
-        String firebaseUid = null;
+        // A criação no Firebase Auth é responsabilidade do frontend (via Firebase SDK).
+        // O backend NÃO chama firebaseAuth.createUser() porque a lib google-http-client 1.45.3
+        // tem um bug com JDK 25+ que causa "Not in GZIP format" ao parsear respostas de erro.
+        // O vínculo com firebaseUid é feito no fluxo de login via getOrProvisionFirebaseUser().
 
-        // 1. Cria usuário no Firebase Auth (se configurado)
-        if (firebaseAuth == null) {
-            log.warn("FirebaseAuth não configurado — usuário NÃO será criado no Firebase Auth. " +
-                    "Configure app.firebase.credentials ou variável FIREBASE_CREDENTIALS.");
-        }
-        if (firebaseAuth != null) {
-            try {
-                UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
-                        .setEmail(email)
-                        .setPassword(request.password())
-                        .setDisplayName(request.name().trim())
-                        .setEmailVerified(false);
-                UserRecord userRecord = firebaseAuth.createUser(createRequest);
-                firebaseUid = userRecord.getUid();
-                log.info("Usuário criado no Firebase Auth: uid={}, email={}", firebaseUid, email);
-            } catch (FirebaseAuthException ex) {
-                log.error("Falha ao criar usuário no Firebase Auth: {}", ex.getMessage());
-                log.error("Verifique se o arquivo de service account Firebase é válido (JSON) " +
-                        "e se o project-id está correto. ErrorCode: {}", ex.getErrorCode());
-                throw new InvalidCredentialsException();
-            }
-        }
-
-        // 2. Cria registro no PostgreSQL
+        // 1. Cria registro no PostgreSQL
+        //    - Primeiro usuário: ACTIVE + ADMIN_LIGA (permite login imediato)
+        //    - Demais: PENDING (aguardando aprovação)
         UserEntity entity = new UserEntity();
         entity.setName(request.name().trim());
         entity.setEmail(email);
-        entity.setFirebaseUid(firebaseUid);
+        entity.setFirebaseUid(null);
         entity.setPasswordHash(null);
         entity.setRole(UserRole.ORGANIZER);
-        entity.setStatus(UserStatus.PENDING);
 
-        return mapper.toResponse(userRepository.save(entity));
+        boolean isFirstUser = userRepository.count() == 0;
+        if (isFirstUser) {
+            entity.setStatus(UserStatus.ACTIVE);
+            entity.setRole(UserRole.ADMIN_LIGA);
+            log.info("Primeiro usuário registrado — auto-ativando como ADMIN_LIGA: email={}", email);
+        } else {
+            entity.setStatus(UserStatus.PENDING);
+        }
+
+        UserResponse response = mapper.toResponse(userRepository.save(entity));
+        log.info("Usuário registrado no PostgreSQL ({}): email={}, id={}",
+                entity.getStatus(), email, entity.getId());
+        return response;
     }
 
     public LoginResponse login(LoginRequest request) {

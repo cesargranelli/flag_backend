@@ -134,6 +134,20 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Firebase Admin SDK (exclui Apache HTTP para forçar NetHttpTransport nativo do Java) -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.4.3</version>
+            <exclusions>
+                <!-- Apache HttpClient 5 causa "Not in GZIP format" com JDK 25+ -->
+                <exclusion>
+                    <groupId>com.google.http-client</groupId>
+                    <artifactId>google-http-client-apache-v2</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
         <!-- MapStruct -->
         <dependency>
             <groupId>org.mapstruct</groupId>

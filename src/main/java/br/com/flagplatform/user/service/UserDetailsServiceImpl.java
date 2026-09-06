@@ -31,7 +31,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         }
 
         return User.withUsername(user.getEmail())
-                .password(user.getPasswordHash())
+                .password(user.getPasswordHash() != null ? user.getPasswordHash() : "")
                 .authorities(List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().getCode())))
                 .build();
     }

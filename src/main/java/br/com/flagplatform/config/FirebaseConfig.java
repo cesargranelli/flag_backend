@@ -48,6 +48,10 @@ public class FirebaseConfig {
                 return null;
             }
 
+            // Fix Windows: force IPv4 and TLS 1.2+ to avoid "Not in GZIP format"
+            System.setProperty("java.net.preferIPv4Stack", "true");
+            System.setProperty("https.protocols", "TLSv1.2,TLSv1.3");
+
             FirebaseOptions.Builder builder = FirebaseOptions.builder()
                     .setCredentials(googleCredentials);
 
@@ -56,7 +60,9 @@ public class FirebaseConfig {
             }
 
             FirebaseApp app = FirebaseApp.initializeApp(builder.build());
-            log.info("FirebaseApp initialized successfully.");
+            log.info("FirebaseApp initialized successfully (IPv4={}, TLS={}).",
+                    System.getProperty("java.net.preferIPv4Stack"),
+                    System.getProperty("https.protocols"));
             return app;
         } catch (Exception ex) {
             log.warn("Failed to initialize FirebaseApp: {}. Application will continue without Firebase Admin SDK.", ex.getMessage());
@@ -84,6 +90,13 @@ public class FirebaseConfig {
         log.info("  FIREBASE_CREDENTIALS env = '{}'", System.getenv("FIREBASE_CREDENTIALS"));
         log.info("  GOOGLE_APPLICATION_CREDENTIALS env = '{}'",
                 System.getenv("GOOGLE_APPLICATION_CREDENTIALS"));
+        // Diagnosticar proxy que pode causar "Not in GZIP format"
+        log.info("  HTTP_PROXY env = '{}'", System.getenv("HTTP_PROXY"));
+        log.info("  HTTPS_PROXY env = '{}'", System.getenv("HTTPS_PROXY"));
+        log.info("  http_proxy env = '{}'", System.getenv("http_proxy"));
+        log.info("  https_proxy env = '{}'", System.getenv("https_proxy"));
+        log.info("  NO_PROXY env = '{}'", System.getenv("NO_PROXY"));
+        log.info("  java.net.preferIPv4Stack = '{}'", System.getProperty("java.net.preferIPv4Stack"));
         if (credentials != null && !credentials.isBlank()) {
             String trimmed = credentials.trim();
             // 1. JSON inline
