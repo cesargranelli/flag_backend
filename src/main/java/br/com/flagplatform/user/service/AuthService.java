@@ -19,9 +19,13 @@ import br.com.flagplatform.user.exception.InvalidCredentialsException;
 import br.com.flagplatform.user.exception.UserNotFoundException;
 import br.com.flagplatform.user.mapper.UserMapper;
 import br.com.flagplatform.user.repository.UserRepository;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.UserRecord;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +34,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -39,6 +44,9 @@ public class AuthService implements UserLookup {
     private final FirebaseTokenService firebaseTokenService;
     private final UserMapper mapper;
     private final TokenProvider tokenProvider;
+
+    @Autowired(required = false)
+    private FirebaseAuth firebaseAuth;
 
     @Value("${app.security.default-role:ADMIN_LIGA}")
     private String defaultRole;
@@ -51,11 +59,33 @@ public class AuthService implements UserLookup {
             throw new EmailAlreadyExistsException(email);
         }
 
-        UserEntity entity = mapper.toEntity(request);
+        String firebaseUid = null;
+
+        // 1. Cria usuário no Firebase Auth (se configurado)
+        if (firebaseAuth != null) {
+            try {
+                UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
+                        .setEmail(email)
+                        .setPassword(request.password())
+                        .setDisplayName(request.name().trim())
+                        .setEmailVerified(false);
+                UserRecord userRecord = firebaseAuth.createUser(createRequest);
+                firebaseUid = userRecord.getUid();
+                log.info("Usuário criado no Firebase Auth: uid={}, email={}", firebaseUid, email);
+            } catch (FirebaseAuthException ex) {
+                log.error("Falha ao criar usuário no Firebase Auth: {}", ex.getMessage());
+                throw new InvalidCredentialsException();
+            }
+        }
+
+        // 2. Cria registro no PostgreSQL
+        UserEntity entity = new UserEntity();
+        entity.setName(request.name().trim());
         entity.setEmail(email);
+        entity.setFirebaseUid(firebaseUid);
         entity.setPasswordHash(null);
         entity.setRole(UserRole.ORGANIZER);
-        entity.setStatus(UserStatus.PENDING);
+        entity.setStatus(UserStatus.ACTIVE);
 
         return mapper.toResponse(userRepository.save(entity));
     }
@@ -168,9 +198,6 @@ public class AuthService implements UserLookup {
             if (up.getEmail() != null) {
                 return me(up.getEmail());
             }
-        }
-        if (principal instanceof UserDetails ud) {
-            return me(ud.getUsername());
         }
         if (principal instanceof String emailOrUid) {
             return me(emailOrUid);
