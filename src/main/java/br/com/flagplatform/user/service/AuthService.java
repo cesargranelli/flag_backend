@@ -62,6 +62,10 @@ public class AuthService implements UserLookup {
         String firebaseUid = null;
 
         // 1. Cria usuário no Firebase Auth (se configurado)
+        if (firebaseAuth == null) {
+            log.warn("FirebaseAuth não configurado — usuário NÃO será criado no Firebase Auth. " +
+                    "Configure app.firebase.credentials ou variável FIREBASE_CREDENTIALS.");
+        }
         if (firebaseAuth != null) {
             try {
                 UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
@@ -85,7 +89,7 @@ public class AuthService implements UserLookup {
         entity.setFirebaseUid(firebaseUid);
         entity.setPasswordHash(null);
         entity.setRole(UserRole.ORGANIZER);
-        entity.setStatus(UserStatus.ACTIVE);
+        entity.setStatus(UserStatus.PENDING);
 
         return mapper.toResponse(userRepository.save(entity));
     }

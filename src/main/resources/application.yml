@@ -58,6 +58,14 @@ app:
     secret: ${JWT_SECRET:flag-platform-development-secret-change-me-now}
     expiration-seconds: ${JWT_EXPIRATION_SECONDS:3600}
 
+  firebase:
+    # Caminho para o arquivo JSON de credenciais do service account Firebase.
+    # Em dev, definir via variável de ambiente FIREBASE_CREDENTIALS ou
+    # colocar o arquivo em src/main/resources/firebase-service-account.json
+    # e definir: app.firebase.credentials=classpath:firebase-service-account.json
+    credentials: ${FIREBASE_CREDENTIALS:}
+    project-id: ${FIREBASE_PROJECT_ID:flag-platform-e2e}
+
   security:
     rate-limit:
       # Anti brute-force no login: máx. tentativas por IP na janela.
