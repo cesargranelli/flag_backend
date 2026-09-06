@@ -64,7 +64,7 @@ app:
     # colocar o arquivo em src/main/resources/firebase-service-account.json
     # e definir: app.firebase.credentials=classpath:firebase-service-account.json
     credentials: ${FIREBASE_CREDENTIALS:}
-    project-id: ${FIREBASE_PROJECT_ID:flag-platform-e2e}
+    project-id: ${FIREBASE_PROJECT_ID:flag-platform}
 
   security:
     rate-limit:
