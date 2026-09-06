@@ -30,8 +30,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                     "User with email '%s' is not active".formatted(email));
         }
 
+        // Senha não é utilizada — autenticação é via Firebase Auth SDK no frontend.
+        // Spring Security exige uma senha no UserDetails; usamos string vazia.
         return User.withUsername(user.getEmail())
-                .password(user.getPasswordHash() != null ? user.getPasswordHash() : "")
+                .password("")
                 .authorities(List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().getCode())))
                 .build();
     }

@@ -11,8 +11,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -37,8 +35,7 @@ public class SecurityConfig {
     };
 
     private static final String[] PUBLIC_AUTH_PATTERNS = {
-            "/api/v1/auth/register",
-            "/api/v1/auth/login"
+            "/api/v1/auth/register"
     };
 
     private static final String[] SWAGGER_PATTERNS = {
@@ -62,7 +59,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         // Métricas Prometheus (scraping)
                         .requestMatchers("/actuator/prometheus").permitAll()
-                        // Cadastro e login públicos
+                        // Cadastro público (login é via Firebase Auth SDK no frontend)
                         .requestMatchers(HttpMethod.POST, PUBLIC_AUTH_PATTERNS).permitAll()
                         // Check-in de atletas exige role MESA/ADMIN/ADMIN_LIGA/REFEREE (não é leitura pública)
                         .requestMatchers(HttpMethod.GET, "/api/v1/games/*/checkin")
@@ -75,11 +72,6 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
 }

@@ -33,9 +33,6 @@ public class UserEntity extends BaseEntity {
 
     private String email;
 
-    @Column(name = "password_hash")
-    private String passwordHash;
-
     @Column(name = "firebase_uid", unique = true)
     private String firebaseUid;
 

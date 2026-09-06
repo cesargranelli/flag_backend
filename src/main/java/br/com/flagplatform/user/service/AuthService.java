@@ -5,12 +5,9 @@ import br.com.flagplatform.common.enums.UserStatus;
 import br.com.flagplatform.security.FirebaseUserInfo;
 import br.com.flagplatform.security.FirebaseTokenService;
 import br.com.flagplatform.security.UserPrincipal;
-import br.com.flagplatform.user.TokenProvider;
 import br.com.flagplatform.user.UserLookup;
 import br.com.flagplatform.user.dto.request.CreateUserRequest;
-import br.com.flagplatform.user.dto.request.LoginRequest;
 import br.com.flagplatform.user.dto.request.RegisterRequest;
-import br.com.flagplatform.user.dto.response.LoginResponse;
 import br.com.flagplatform.user.dto.response.UserResponse;
 import br.com.flagplatform.user.entity.UserEntity;
 import br.com.flagplatform.user.exception.AccountPendingApprovalException;
@@ -26,7 +23,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,7 +36,6 @@ public class AuthService implements UserLookup {
     private final UserRepository userRepository;
     private final FirebaseTokenService firebaseTokenService;
     private final UserMapper mapper;
-    private final TokenProvider tokenProvider;
 
     @Value("${app.security.default-role:ADMIN_LIGA}")
     private String defaultRole;
@@ -54,18 +49,15 @@ public class AuthService implements UserLookup {
         }
 
         // A criação no Firebase Auth é responsabilidade do frontend (via Firebase SDK).
-        // O backend NÃO chama firebaseAuth.createUser() porque a lib google-http-client 1.45.3
-        // tem um bug com JDK 25+ que causa "Not in GZIP format" ao parsear respostas de erro.
-        // O vínculo com firebaseUid é feito no fluxo de login via getOrProvisionFirebaseUser().
+        // O backend apenas cria o registro no PostgreSQL.
 
-        // 1. Cria registro no PostgreSQL
+        // Cria registro no PostgreSQL
         //    - Primeiro usuário: ACTIVE + ADMIN_LIGA (permite login imediato)
         //    - Demais: PENDING (aguardando aprovação)
         UserEntity entity = new UserEntity();
         entity.setName(request.name().trim());
         entity.setEmail(email);
         entity.setFirebaseUid(null);
-        entity.setPasswordHash(null);
         entity.setRole(UserRole.ORGANIZER);
 
         boolean isFirstUser = userRepository.count() == 0;
@@ -83,32 +75,10 @@ public class AuthService implements UserLookup {
         return response;
     }
 
-    public LoginResponse login(LoginRequest request) {
-        String token = request.firebaseIdToken();
-
-        // 1. Valida Firebase ID Token
-        FirebaseUserInfo firebaseInfo = firebaseTokenService.verifyToken(token)
-                .orElseThrow(InvalidCredentialsException::new);
-
-        // 2. Procura ou provisiona usuário
-        UserEntity user = getOrProvisionFirebaseUser(firebaseInfo);
-
-        // 3. Verifica status ativo
-        if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new AccountPendingApprovalException(
-                    "Account is not active (status: %s).".formatted(user.getStatus()));
-        }
-
-        // 4. Gera token JWT para sessão backend (validade curta)
-        String jwt = tokenProvider.generateToken(user.getEmail());
-
-        return new LoginResponse(
-                jwt,
-                "Bearer",
-                tokenProvider.getExpirationSeconds(),
-                mapper.toResponse(user));
-    }
-
+    /**
+     * Procura ou provisiona usuário a partir de um Firebase ID Token validado.
+     * Chamado pelo {@link br.com.flagplatform.security.JwtAuthenticationFilter}.
+     */
     @Transactional
     public UserEntity getOrProvisionFirebaseUser(FirebaseUserInfo firebaseInfo) {
         String uid = firebaseInfo.uid();
@@ -120,20 +90,21 @@ public class AuthService implements UserLookup {
             return userByUid.get();
         }
 
-        // 2. Fallback: busca por email para vincular usuário pré-existente
+        // 2. Fallback: busca por email para vincular usuário pré-existente (criado via /register)
         if (email != null && !email.isBlank()) {
             Optional<UserEntity> userByEmail = userRepository.findByEmailIgnoreCase(email);
             if (userByEmail.isPresent()) {
                 UserEntity existing = userByEmail.get();
                 if (existing.getFirebaseUid() == null) {
                     existing.setFirebaseUid(uid);
+                    log.info("Vinculando firebase_uid ao usuário existente: email={}, uid={}", email, uid);
                     return userRepository.save(existing);
                 }
                 return existing;
             }
         }
 
-        // 3. Auto-provisionamento inicial
+        // 3. Auto-provisionamento (usuário criado diretamente no Firebase Auth, sem /register)
         UserEntity newUser = new UserEntity();
         String name = firebaseInfo.name();
         if (name == null || name.isBlank()) {
@@ -142,7 +113,6 @@ public class AuthService implements UserLookup {
         newUser.setName(name.trim());
         newUser.setEmail(email != null && !email.isBlank() ? email : uid + "@firebase.user");
         newUser.setFirebaseUid(uid);
-        newUser.setPasswordHash(null);
         newUser.setStatus(UserStatus.ACTIVE);
 
         // Role: ADMIN_LIGA se primeiro usuário ou default configurado
@@ -231,7 +201,6 @@ public class AuthService implements UserLookup {
         UserEntity entity = new UserEntity();
         entity.setName(request.name().trim());
         entity.setEmail(email);
-        entity.setPasswordHash(null);
         entity.setRole(request.role());
         entity.setStatus(UserStatus.ACTIVE);
 

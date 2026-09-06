@@ -2,9 +2,7 @@ package br.com.flagplatform.user.controller;
 
 import br.com.flagplatform.common.security.SecurityExpressions;
 import br.com.flagplatform.user.dto.request.CreateUserRequest;
-import br.com.flagplatform.user.dto.request.LoginRequest;
 import br.com.flagplatform.user.dto.request.RegisterRequest;
-import br.com.flagplatform.user.dto.response.LoginResponse;
 import br.com.flagplatform.user.dto.response.UserResponse;
 import br.com.flagplatform.user.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "Auth", description = "Cadastro, autenticação e usuário atual")
+@Tag(name = "Auth", description = "Cadastro e usuário atual")
 @RequestMapping("/api/v1/auth")
 @RestController
 @RequiredArgsConstructor
@@ -45,17 +42,8 @@ public class AuthController {
     }
 
     @Operation(
-            summary = "Autenticar via Firebase ID Token",
-            description = "Valida o Firebase ID Token, provisiona o usuário se necessário e retorna um JWT de sessão. Acesso público."
-    )
-    @PostMapping("/login")
-    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
-        return service.login(request);
-    }
-
-    @Operation(
             summary = "Usuário atual",
-            description = "Retorna o usuário autenticado no contexto do Spring Security (Firebase ID Token)."
+            description = "Retorna o usuário autenticado no contexto do Spring Security (Firebase ID Token via header Authorization)."
     )
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal Object principal) {

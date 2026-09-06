@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +19,9 @@ import java.util.List;
  * <p>
  * Cria usuários com status ACTIVE para permitir login direto no Admin Web,
  * já que o registro público gera contas PENDING.
+ * <p>
+ * A autenticação é feita via Firebase Auth SDK no frontend —
+ * não é necessário armazenar hash de senha.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -28,14 +30,13 @@ import java.util.List;
 public class StagingDataSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
     public void run(String... args) {
         List<UserEntity> applied = new ArrayList<>();
-        seed("organizer@flag.test", "Organizador Staging", "Organizer@123", UserRole.ORGANIZER, applied);
-        seed("admin@flag.test", "Admin Staging", "Admin@123", UserRole.ADMIN, applied);
+        seed("organizer@flag.test", "Organizador Staging", UserRole.ORGANIZER, applied);
+        seed("admin@flag.test", "Admin Staging", UserRole.ADMIN_LIGA, applied);
 
         if (!applied.isEmpty()) {
             log.info("Usuários de staging aplicados ({} itens): {}", applied.size(),
@@ -43,14 +44,13 @@ public class StagingDataSeeder implements CommandLineRunner {
         }
     }
 
-    private void seed(String email, String name, String password, UserRole role, List<UserEntity> applied) {
+    private void seed(String email, String name, UserRole role, List<UserEntity> applied) {
         if (userRepository.existsByEmailIgnoreCase(email)) {
             return;
         }
         UserEntity entity = new UserEntity();
         entity.setName(name);
         entity.setEmail(email);
-        entity.setPasswordHash(passwordEncoder.encode(password));
         entity.setRole(role);
         entity.setStatus(UserStatus.ACTIVE);
         userRepository.save(entity);
