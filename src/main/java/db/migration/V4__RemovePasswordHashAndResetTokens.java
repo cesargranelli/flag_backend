@@ -2,26 +2,22 @@ package db.migration;
 
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
-
-import java.sql.Statement;
+import org.jooq.DSLContext;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
 
 /**
- * Migration V4: Remove coluna password_hash e tabela password_reset_tokens.
- * <p>
- * A autenticação agora é feita exclusivamente via Firebase Auth SDK no frontend.
- * O backend não armazena mais hashes de senha nem tokens de redefinição.
+ * Migration V4: Remove password_hash e password_reset_tokens (ADR-008).
+ * Usa DSL do jOOQ (ADR-007) para evitar lock-in.
  */
 public class V4__RemovePasswordHashAndResetTokens extends BaseJavaMigration {
 
     @Override
     public void migrate(Context context) throws Exception {
-        try (Statement stmt = context.getConnection().createStatement()) {
-            // Remove tabela de tokens de redefinição de senha
-            stmt.execute("DROP TABLE IF EXISTS platform.password_reset_tokens CASCADE;");
-
-            // Remove coluna password_hash da tabela users
-            stmt.execute("ALTER TABLE platform.users DROP COLUMN IF EXISTS password_hash;");
-        }
+        DSLContext dsl = DSL.using(context.getConnection(), SQLDialect.POSTGRES);
+        dsl.dropTableIfExists(DSL.name("platform", "password_reset_tokens")).execute();
+        dsl.alterTable(DSL.name("platform", "users"))
+                .dropColumnIfExists(DSL.field(DSL.name("password_hash")))
+                .execute();
     }
-
 }

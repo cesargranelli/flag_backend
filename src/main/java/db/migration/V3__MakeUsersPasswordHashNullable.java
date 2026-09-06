@@ -1,21 +1,23 @@
 package db.migration;
 
-import java.sql.Connection;
-import java.sql.Statement;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
+import org.jooq.DSLContext;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
 
 /**
- * Migration V3: Torna a coluna password_hash opcional na tabela platform.users,
- * conforme Seção 3 da Especificação Técnica (Autenticação Híbrida via Firebase Auth).
+ * Migration V3: Torna password_hash opcional em platform.users (ADR-008).
+ * Usa DSL do jOOQ (ADR-007) para evitar lock-in de SQL nativo.
  */
 public class V3__MakeUsersPasswordHashNullable extends BaseJavaMigration {
 
     @Override
     public void migrate(Context context) throws Exception {
-        Connection connection = context.getConnection();
-        try (Statement statement = connection.createStatement()) {
-            statement.execute("ALTER TABLE platform.users ALTER COLUMN password_hash DROP NOT NULL;");
-        }
+        DSLContext dsl = DSL.using(context.getConnection(), SQLDialect.POSTGRES);
+        dsl.alterTable(DSL.name("platform", "users"))
+                .alter(DSL.field(DSL.name("password_hash")))
+                .dropNotNull()
+                .execute();
     }
 }
