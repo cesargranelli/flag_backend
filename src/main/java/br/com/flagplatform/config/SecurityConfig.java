@@ -38,9 +38,7 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_AUTH_PATTERNS = {
             "/api/v1/auth/register",
-            "/api/v1/auth/login",
-            "/api/v1/auth/forgot-password",
-            "/api/v1/auth/reset-password"
+            "/api/v1/auth/login"
     };
 
     private static final String[] SWAGGER_PATTERNS = {
@@ -66,9 +64,9 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/prometheus").permitAll()
                         // Cadastro e login públicos
                         .requestMatchers(HttpMethod.POST, PUBLIC_AUTH_PATTERNS).permitAll()
-                        // Check-in de atletas exige role MESA/ADMIN (não é leitura pública)
+                        // Check-in de atletas exige role MESA/ADMIN/ADMIN_LIGA/REFEREE (não é leitura pública)
                         .requestMatchers(HttpMethod.GET, "/api/v1/games/*/checkin")
-                                .hasAnyRole("ADMIN", "MESA")
+                                .hasAnyRole("ADMIN", "MESA", "ADMIN_LIGA", "REFEREE")
                         // Leitura pública para todas as entidades
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET_PATTERNS).permitAll()
                         // Escrita exige autenticação
