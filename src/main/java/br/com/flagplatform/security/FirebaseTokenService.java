@@ -3,14 +3,11 @@ package br.com.flagplatform.security;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthException;
-import com.google.firebase.auth.FirebaseToken;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
@@ -19,34 +16,36 @@ import java.util.Optional;
 /**
  * Serviço responsável por validar e extrair informações de Firebase ID Tokens.
  * <p>
- * Quando o {@link FirebaseAuth} está inicializado com credenciais válidas,
- * realiza a verificação criptográfica estrita da assinatura com o Google.
- * Caso o SDK não esteja configurado (ambiente local de desenvolvimento/testes),
- * opera em modo fallback tolerante inspecionando o payload do JWT.
+ * Usa verificação manual de JWT (via {@link FirebaseJwtVerifier}) como método primário,
+ * evitando o Firebase Admin SDK que sofre do bug "Not in GZIP format" do
+ * google-http-client 1.45.3 com JDK 25+.
+ * <p>
+ * Mantém um fallback local (dev mode) para ambientes sem credenciais.
  */
 @Slf4j
 @Service
 public class FirebaseTokenService {
 
-    private final FirebaseAuth firebaseAuth;
+    private final FirebaseJwtVerifier jwtVerifier;
     private final ObjectMapper objectMapper;
 
-    public FirebaseTokenService(
-            @Autowired(required = false) FirebaseAuth firebaseAuth,
-            @Autowired(required = false) ObjectMapper objectMapper) {
-        this.firebaseAuth = firebaseAuth;
-        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
-    }
+    private final String projectId;
 
-    public boolean isFirebaseConfigured() {
-        return firebaseAuth != null;
+    public FirebaseTokenService(
+            @Autowired(required = false) ObjectMapper objectMapper,
+            @Value("${app.firebase.project-id:${FIREBASE_PROJECT_ID:}}") String projectId) {
+        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+        this.projectId = projectId;
+        // Inicializa o verificador manual com o project ID
+        this.jwtVerifier = new FirebaseJwtVerifier(projectId);
+        log.info("FirebaseTokenService inicializado com verificação manual de JWT (project={})", projectId);
     }
 
     /**
      * Valida o token e extrai as informações do usuário.
      *
      * @param token ID Token do Firebase (sem o prefixo "Bearer ")
-     * @return {@link FirebaseUserInfo} se o token for válido e corresponder a um token Firebase,
+     * @return {@link FirebaseUserInfo} se o token for válido,
      *         ou {@link Optional#empty()} caso contrário.
      */
     public Optional<FirebaseUserInfo> verifyToken(String token) {
@@ -54,26 +53,16 @@ public class FirebaseTokenService {
             return Optional.empty();
         }
 
-        // 1. Verificação oficial via Firebase Admin SDK
-        if (firebaseAuth != null) {
-            try {
-                FirebaseToken decoded = firebaseAuth.verifyIdToken(token);
-                return Optional.of(new FirebaseUserInfo(
-                        decoded.getUid(),
-                        decoded.getEmail(),
-                        decoded.getName(),
-                        decoded.getClaims()
-                ));
-            } catch (FirebaseAuthException ex) {
-                log.debug("Falha na validação do Firebase ID Token via Admin SDK: {}", ex.getMessage());
-                return Optional.empty();
-            } catch (Exception ex) {
-                log.warn("Erro inesperado ao validar Firebase ID Token: {}", ex.getMessage());
-                return Optional.empty();
+        // 1. Verificação manual via FirebaseJwtVerifier (java.net.http + jjwt)
+        //    Não depende do Firebase Admin SDK, contornando o bug GZIP.
+        if (projectId != null && !projectId.isBlank()) {
+            Optional<FirebaseUserInfo> result = jwtVerifier.verify(token);
+            if (result.isPresent()) {
+                return result;
             }
         }
 
-        // 2. Fallback de desenvolvimento local (sem credenciais de service account)
+        // 2. Fallback de desenvolvimento local (sem project ID configurado)
         return parseDevFallbackToken(token);
     }
 
