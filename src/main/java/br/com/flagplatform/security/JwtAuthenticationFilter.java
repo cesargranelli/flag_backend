@@ -1,6 +1,5 @@
 package br.com.flagplatform.security;
 
-import br.com.flagplatform.common.enums.UserStatus;
 import br.com.flagplatform.user.entity.UserEntity;
 import br.com.flagplatform.user.service.AuthService;
 import jakarta.servlet.FilterChain;
@@ -46,8 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 firebaseTokenService.verifyToken(token)
                         .ifPresent(firebaseUser -> {
                             UserEntity user = authService.getOrProvisionFirebaseUser(firebaseUser);
-
-                            if (user != null && user.getStatus() == UserStatus.ACTIVE) {
+                            if (user != null) {
                                 UserPrincipal principal = new UserPrincipal(user);
                                 UsernamePasswordAuthenticationToken authentication =
                                         new UsernamePasswordAuthenticationToken(

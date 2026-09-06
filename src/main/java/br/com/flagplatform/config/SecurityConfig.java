@@ -66,7 +66,7 @@ public class SecurityConfig {
                                 .hasAnyRole("ADMIN", "MESA", "ADMIN_LIGA", "REFEREE")
                         // Leitura pública para todas as entidades
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET_PATTERNS).permitAll()
-                        // Escrita exige autenticação
+                        // Leitura pública já permitida acima; demais GETs exigem autenticação
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

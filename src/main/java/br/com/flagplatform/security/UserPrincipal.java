@@ -40,13 +40,18 @@ public class UserPrincipal implements UserDetails {
         this.clubId = user.getClubId();
         this.role = user.getRole();
         this.status = user.getStatus();
-        this.authorities = user.getRole() != null
-                ? List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().getCode()))
-                : List.of();
+        this.authorities = buildAuthorities(user.getRole(), user.getStatus());
+    }
+
+    private static List<SimpleGrantedAuthority> buildAuthorities(UserRole role, UserStatus status) {
+        var list = new java.util.ArrayList<SimpleGrantedAuthority>();
+        if (role != null) list.add(new SimpleGrantedAuthority("ROLE_" + role.getCode()));
+        if (status != null) list.add(new SimpleGrantedAuthority("STATUS_" + status.name()));
+        return List.copyOf(list);
     }
 
     public UserPrincipal(UUID id, String email, String name, String firebaseUid,
-                         UUID organizationId, UUID clubId, UserRole role, UserStatus status) {
+                          UUID organizationId, UUID clubId, UserRole role, UserStatus status) {
         this.id = id;
         this.email = email;
         this.name = name;
@@ -55,9 +60,7 @@ public class UserPrincipal implements UserDetails {
         this.clubId = clubId;
         this.role = role;
         this.status = status;
-        this.authorities = role != null
-                ? List.of(new SimpleGrantedAuthority("ROLE_" + role.getCode()))
-                : List.of();
+        this.authorities = buildAuthorities(role, status);
     }
 
     @Override
@@ -92,6 +95,6 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return status == UserStatus.ACTIVE;
+        return true;
     }
 }
