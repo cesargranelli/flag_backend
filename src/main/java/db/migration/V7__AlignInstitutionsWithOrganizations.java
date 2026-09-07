@@ -11,6 +11,7 @@ import org.jooq.impl.SQLDataType;
 /**
  * Migration V7: Alinha a tabela platform.institutions com a estrutura de platform.organizations
  * (campos cadastrais completos e 4 cores nomeadas).
+ * Conforme documentação do jOOQ: alterTable(table).add(Field<?>... fields).
  */
 public class V7__AlignInstitutionsWithOrganizations extends BaseJavaMigration {
 
@@ -19,81 +20,29 @@ public class V7__AlignInstitutionsWithOrganizations extends BaseJavaMigration {
         Connection connection = context.getConnection();
         DSLContext dsl = DSL.using(connection, SQLDialect.POSTGRES);
 
-        // 1. Adicionar colunas cadastrais e de identidade visual
+        // 1. Adicionar colunas cadastrais e de identidade visual em um unico comando ALTER TABLE ADD MULTIPLE
         dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("legal_name"), SQLDataType.VARCHAR(255)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("trade_name"), SQLDataType.VARCHAR(255)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("abbreviation"), SQLDataType.VARCHAR(20)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("document"), SQLDataType.VARCHAR(20)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("document_type"), SQLDataType.VARCHAR(10)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("president_name"), SQLDataType.VARCHAR(150)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("president_cpf"), SQLDataType.VARCHAR(14)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("email"), SQLDataType.VARCHAR(150)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("phone"), SQLDataType.VARCHAR(30)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("website"), SQLDataType.VARCHAR(255)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("instagram"), SQLDataType.VARCHAR(100)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("country"), SQLDataType.VARCHAR(2).defaultValue(DSL.inline("BR"))))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("state"), SQLDataType.VARCHAR(100)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("city"), SQLDataType.VARCHAR(100)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("logo_url"), SQLDataType.VARCHAR(500)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("primary_color"), SQLDataType.VARCHAR(7)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("secondary_color"), SQLDataType.VARCHAR(7)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("tertiary_color"), SQLDataType.VARCHAR(7)))
-                .execute();
-
-        dsl.alterTable(DSL.name("platform", "institutions"))
-                .addColumn(DSL.field(DSL.name("quaternary_color"), SQLDataType.VARCHAR(7)))
+                .add(
+                        DSL.field(DSL.name("legal_name"), SQLDataType.VARCHAR(255)),
+                        DSL.field(DSL.name("trade_name"), SQLDataType.VARCHAR(255)),
+                        DSL.field(DSL.name("abbreviation"), SQLDataType.VARCHAR(20)),
+                        DSL.field(DSL.name("document"), SQLDataType.VARCHAR(20)),
+                        DSL.field(DSL.name("document_type"), SQLDataType.VARCHAR(10)),
+                        DSL.field(DSL.name("president_name"), SQLDataType.VARCHAR(150)),
+                        DSL.field(DSL.name("president_cpf"), SQLDataType.VARCHAR(14)),
+                        DSL.field(DSL.name("email"), SQLDataType.VARCHAR(150)),
+                        DSL.field(DSL.name("phone"), SQLDataType.VARCHAR(30)),
+                        DSL.field(DSL.name("website"), SQLDataType.VARCHAR(255)),
+                        DSL.field(DSL.name("instagram"), SQLDataType.VARCHAR(100)),
+                        DSL.field(DSL.name("country"), SQLDataType.VARCHAR(2).defaultValue(DSL.inline("BR"))),
+                        DSL.field(DSL.name("state"), SQLDataType.VARCHAR(100)),
+                        DSL.field(DSL.name("city"), SQLDataType.VARCHAR(100)),
+                        DSL.field(DSL.name("logo_url"), SQLDataType.VARCHAR(500)),
+                        DSL.field(DSL.name("primary_color"), SQLDataType.VARCHAR(7)),
+                        DSL.field(DSL.name("secondary_color"), SQLDataType.VARCHAR(7)),
+                        DSL.field(DSL.name("tertiary_color"), SQLDataType.VARCHAR(7)),
+                        DSL.field(DSL.name("quaternary_color"), SQLDataType.VARCHAR(7))
+                )
                 .execute();
 
         // 2. Popular trade_name e legal_name com o valor de name caso existam registros legados
