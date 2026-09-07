@@ -19,6 +19,12 @@ public class InstitutionOrganizationRepository {
                 UUID.class, institutionId);
     }
 
+    public List<UUID> findInstitutionIds(UUID organizationId) {
+        return jdbc.queryForList(
+                "SELECT institution_id FROM platform.institution_organizations WHERE organization_id = ?",
+                UUID.class, organizationId);
+    }
+
     public void setOrganizations(UUID institutionId, List<UUID> organizationIds) {
         jdbc.update("DELETE FROM platform.institution_organizations WHERE institution_id = ?", institutionId);
         if (organizationIds == null || organizationIds.isEmpty()) return;

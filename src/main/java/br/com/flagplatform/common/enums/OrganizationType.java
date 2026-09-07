@@ -7,10 +7,7 @@ public enum OrganizationType implements PersistableEnum {
 
     FEDERATION("FEDERATION", "Federation"),
     ASSOCIATION("ASSOCIATION", "Association"),
-    LEAGUE("LEAGUE", "League"),
-    UNIVERSITY("UNIVERSITY", "University"),
-    CLUB("CLUB", "Club"),
-    OTHER("OTHER", "Other");
+    LEAGUE("LEAGUE", "League");
 
     private final String code;
     private final String description;

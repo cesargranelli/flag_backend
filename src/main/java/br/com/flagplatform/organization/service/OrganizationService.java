@@ -43,11 +43,11 @@ public class OrganizationService implements OrganizationLookup {
             OrganizationType.ASSOCIATION);
 
     /**
-     * Tipos que podem ser associados como organização filha (clube/universidade).
+     * Tipos que podem ser associados como organização filha na governança (ADR-009).
      */
     private static final List<OrganizationType> CHILD_TYPES = List.of(
-            OrganizationType.CLUB,
-            OrganizationType.UNIVERSITY);
+            OrganizationType.LEAGUE,
+            OrganizationType.ASSOCIATION);
 
     private final OrganizationMapper mapper;
     private final OrganizationRepository repository;
@@ -130,7 +130,7 @@ public class OrganizationService implements OrganizationLookup {
         }
         if (!CHILD_TYPES.contains(child.getOrganizationType())) {
             throw new InvalidOrganizationHierarchyException(
-                    "A organização filha deve ser CLUBE ou UNIVERSIDADE.");
+                    "A organização filha deve ser LIGA ou ASSOCIAÇÃO.");
         }
         if (child.getParentId() != null) {
             throw new OrganizationAssociationConflictException(clubId, child.getParentId());

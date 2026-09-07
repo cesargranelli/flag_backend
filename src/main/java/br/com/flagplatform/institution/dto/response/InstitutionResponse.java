@@ -13,5 +13,6 @@ public record InstitutionResponse(
         List<String> colors,
         List<UUID> organizations,
         String status,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
 ) {}
