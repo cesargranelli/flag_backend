@@ -4,6 +4,7 @@ import br.com.flagplatform.common.enums.DocumentType;
 import br.com.flagplatform.common.enums.OrganizationType;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record CreateOrganizationRequest(
@@ -18,6 +19,7 @@ public record CreateOrganizationRequest(
         @Size(max = 20)
         String abbreviation,
 
+        @NotNull
         OrganizationType organizationType,
 
         @Size(max = 20)
