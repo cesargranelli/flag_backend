@@ -39,7 +39,19 @@ public class InstitutionService {
 
     @Transactional(readOnly = true)
     public List<InstitutionResponse> list() {
-        return repository.findAll().stream()
+        return list(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<InstitutionResponse> list(UUID organizationId) {
+        if (organizationId == null) {
+            return repository.findAll().stream()
+                    .map(e -> mapper.toResponse(e, orgRepo.findOrganizationIds(e.getId())))
+                    .toList();
+        }
+        List<UUID> instIds = orgRepo.findInstitutionIds(organizationId);
+        if (instIds.isEmpty()) return List.of();
+        return repository.findAllById(instIds).stream()
                 .map(e -> mapper.toResponse(e, orgRepo.findOrganizationIds(e.getId())))
                 .toList();
     }

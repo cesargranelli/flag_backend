@@ -26,7 +26,9 @@ public class InstitutionController {
 
     @Operation(summary = "Listar instituições")
     @GetMapping
-    public List<InstitutionResponse> list() { return service.list(); }
+    public List<InstitutionResponse> list(@RequestParam(required = false) UUID organizationId) {
+        return service.list(organizationId);
+    }
 
     @Operation(summary = "Criar instituição")
     @PostMapping
@@ -52,7 +54,21 @@ public class InstitutionController {
     @Operation(summary = "Definir organizações da instituição")
     @PutMapping("/{id}/organizations")
     @PreAuthorize(SecurityExpressions.INSTITUTION_WRITE)
-    public InstitutionResponse setOrganizations(@PathVariable UUID id, @RequestBody List<UUID> organizationIds) {
+    public InstitutionResponse setOrganizations(
+            @PathVariable UUID id,
+            @RequestBody com.fasterxml.jackson.databind.JsonNode node) {
+        List<UUID> organizationIds = new java.util.ArrayList<>();
+        if (node != null) {
+            if (node.isArray()) {
+                for (com.fasterxml.jackson.databind.JsonNode item : node) {
+                    organizationIds.add(UUID.fromString(item.asText()));
+                }
+            } else if (node.has("organizationIds") && node.get("organizationIds").isArray()) {
+                for (com.fasterxml.jackson.databind.JsonNode item : node.get("organizationIds")) {
+                    organizationIds.add(UUID.fromString(item.asText()));
+                }
+            }
+        }
         return service.setOrganizations(id, organizationIds);
     }
 }
