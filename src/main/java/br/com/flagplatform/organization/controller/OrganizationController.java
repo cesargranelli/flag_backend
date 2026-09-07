@@ -4,6 +4,7 @@ import br.com.flagplatform.common.security.CurrentUser;
 import br.com.flagplatform.common.security.SecurityExpressions;
 import br.com.flagplatform.organization.dto.request.AssociateClubRequest;
 import br.com.flagplatform.organization.dto.request.CreateOrganizationRequest;
+import br.com.flagplatform.organization.dto.request.UpdateOrganizationRequest;
 import br.com.flagplatform.organization.dto.response.OrganizationCreatedResponse;
 import br.com.flagplatform.organization.dto.response.OrganizationResponse;
 import br.com.flagplatform.organization.service.OrganizationService;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -74,6 +76,18 @@ public class OrganizationController {
             @Parameter(description = "Id da organização") @PathVariable UUID id,
             Authentication authentication) {
         return service.findById(id, CurrentUser.isAdmin(authentication));
+    }
+
+    @Operation(
+            summary = "Atualizar organização",
+            description = "Atualiza os dados cadastrais da organização esportiva. Requer ADMIN ou ORGANIZER."
+    )
+    @PutMapping("/{id}")
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    public OrganizationResponse update(
+            @Parameter(description = "Id da organização") @PathVariable UUID id,
+            @Valid @RequestBody UpdateOrganizationRequest request) {
+        return service.update(id, request);
     }
 
     @Operation(
