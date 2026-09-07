@@ -2,56 +2,47 @@ package br.com.flagplatform.user.service;
 
 import br.com.flagplatform.common.enums.UserRole;
 import br.com.flagplatform.common.enums.UserStatus;
-import br.com.flagplatform.user.TokenProvider;
+import br.com.flagplatform.security.FirebaseUserInfo;
+import br.com.flagplatform.security.FirebaseTokenService;
+import br.com.flagplatform.security.UserPrincipal;
 import br.com.flagplatform.user.UserLookup;
 import br.com.flagplatform.user.dto.request.CreateUserRequest;
-import br.com.flagplatform.user.dto.request.ForgotPasswordRequest;
-import br.com.flagplatform.user.dto.request.LoginRequest;
+import br.com.flagplatform.user.dto.request.DevTokenRequest;
 import br.com.flagplatform.user.dto.request.RegisterRequest;
-import br.com.flagplatform.user.dto.request.ResetPasswordRequest;
-import br.com.flagplatform.user.dto.response.ForgotPasswordResponse;
-import br.com.flagplatform.user.dto.response.LoginResponse;
+import br.com.flagplatform.user.dto.response.DevTokenResponse;
 import br.com.flagplatform.user.dto.response.UserResponse;
-import br.com.flagplatform.user.entity.PasswordResetTokenEntity;
 import br.com.flagplatform.user.entity.UserEntity;
 import br.com.flagplatform.user.exception.AccountPendingApprovalException;
 import br.com.flagplatform.user.exception.EmailAlreadyExistsException;
 import br.com.flagplatform.user.exception.InvalidCredentialsException;
-import br.com.flagplatform.user.exception.InvalidResetTokenException;
 import br.com.flagplatform.user.exception.UserNotFoundException;
 import br.com.flagplatform.user.mapper.UserMapper;
-import br.com.flagplatform.user.repository.PasswordResetTokenRepository;
 import br.com.flagplatform.user.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.LocalDateTime;
-import java.util.HexFormat;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AuthService implements UserLookup {
 
     private final UserRepository userRepository;
-    private final PasswordResetTokenRepository resetTokenRepository;
+    private final FirebaseTokenService firebaseTokenService;
     private final UserMapper mapper;
-    private final PasswordEncoder passwordEncoder;
-    private final TokenProvider tokenProvider;
 
-    @Value("${app.security.password-reset.expiration-minutes:60}")
-    private long resetExpirationMinutes;
-
-    @Value("${app.mail.enabled:false}")
-    private boolean mailEnabled;
+    @Value("${app.security.default-role:ADMIN_LIGA}")
+    private String defaultRole;
 
     @Transactional
     public UserResponse register(RegisterRequest request) {
@@ -61,36 +52,130 @@ public class AuthService implements UserLookup {
             throw new EmailAlreadyExistsException(email);
         }
 
-        UserEntity entity = mapper.toEntity(request);
+        // A criação no Firebase Auth é responsabilidade do frontend (via Firebase SDK).
+        // O backend apenas cria o registro no PostgreSQL.
+
+        // Cria registro no PostgreSQL
+        //    - Primeiro usuário: ACTIVE + ADMIN_LIGA (permite login imediato)
+        //    - Demais: PENDING (aguardando aprovação)
+        UserEntity entity = new UserEntity();
+        entity.setName(request.name().trim());
         entity.setEmail(email);
-        entity.setPasswordHash(passwordEncoder.encode(request.password()));
+        entity.setFirebaseUid(null);
         entity.setRole(UserRole.ORGANIZER);
-        entity.setStatus(UserStatus.PENDING);
 
-        return mapper.toResponse(userRepository.save(entity));
-    }
-
-    public LoginResponse login(LoginRequest request) {
-        UserEntity user = userRepository.findByEmailIgnoreCase(normalize(request.email()))
-                .orElseThrow(InvalidCredentialsException::new);
-
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new InvalidCredentialsException();
+        boolean isFirstUser = userRepository.count() == 0;
+        if (isFirstUser) {
+            entity.setStatus(UserStatus.ACTIVE);
+            entity.setRole(UserRole.ADMIN_LIGA);
+            log.info("Primeiro usuário registrado — auto-ativando como ADMIN_LIGA: email={}", email);
+        } else {
+            entity.setStatus(UserStatus.PENDING);
         }
 
-        requireActive(user);
-
-        String token = tokenProvider.generateToken(user.getEmail());
-
-        return new LoginResponse(
-                token,
-                "Bearer",
-                tokenProvider.getExpirationSeconds(),
-                mapper.toResponse(user));
+        UserResponse response = mapper.toResponse(userRepository.save(entity));
+        log.info("Usuário registrado no PostgreSQL ({}): email={}, id={}",
+                entity.getStatus(), email, entity.getId());
+        return response;
     }
 
-    public UserResponse me(String email) {
-        UserEntity user = userRepository.findByEmailIgnoreCase(normalize(email))
+    /**
+     * Procura ou provisiona usuário a partir de um Firebase ID Token validado.
+     * Chamado pelo {@link br.com.flagplatform.security.JwtAuthenticationFilter}.
+     */
+    @Transactional
+    public UserEntity getOrProvisionFirebaseUser(FirebaseUserInfo firebaseInfo) {
+        String uid = firebaseInfo.uid();
+        String email = normalize(firebaseInfo.email());
+
+        // 1. Busca pelo firebase_uid
+        Optional<UserEntity> userByUid = userRepository.findByFirebaseUid(uid);
+        if (userByUid.isPresent()) {
+            return userByUid.get();
+        }
+
+        // 2. Fallback: busca por email para vincular usuário pré-existente (criado via /register)
+        if (email != null && !email.isBlank()) {
+            Optional<UserEntity> userByEmail = userRepository.findByEmailIgnoreCase(email);
+            if (userByEmail.isPresent()) {
+                UserEntity existing = userByEmail.get();
+                if (existing.getFirebaseUid() == null) {
+                    existing.setFirebaseUid(uid);
+                    log.info("Vinculando firebase_uid ao usuário existente: email={}, uid={}", email, uid);
+                    return userRepository.save(existing);
+                }
+                return existing;
+            }
+        }
+
+        // 3. Auto-provisionamento (usuário criado diretamente no Firebase Auth, sem /register)
+        UserEntity newUser = new UserEntity();
+        String name = firebaseInfo.name();
+        if (name == null || name.isBlank()) {
+            name = (email != null && !email.isBlank()) ? email.split("@")[0] : "Usuário";
+        }
+        newUser.setName(name.trim());
+        newUser.setEmail(email != null && !email.isBlank() ? email : uid + "@firebase.user");
+        newUser.setFirebaseUid(uid);
+        newUser.setStatus(UserStatus.ACTIVE);
+
+        // Role: ADMIN_LIGA se primeiro usuário ou default configurado
+        boolean isFirstUser = userRepository.count() == 0;
+        UserRole assignedRole;
+        if (isFirstUser) {
+            assignedRole = UserRole.ADMIN_LIGA;
+        } else {
+            try {
+                assignedRole = UserRole.valueOf(defaultRole);
+            } catch (Exception e) {
+                assignedRole = UserRole.ADMIN_LIGA;
+            }
+        }
+        newUser.setRole(assignedRole);
+
+        // Extrai claims opcionais (organization_id, club_id)
+        if (firebaseInfo.claims() != null) {
+            Object orgClaim = firebaseInfo.claims().get("organization_id");
+            if (orgClaim != null) {
+                try {
+                    newUser.setOrganizationId(UUID.fromString(orgClaim.toString()));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            Object clubClaim = firebaseInfo.claims().get("club_id");
+            if (clubClaim != null) {
+                try {
+                    newUser.setClubId(UUID.fromString(clubClaim.toString()));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
+
+        return userRepository.save(newUser);
+    }
+
+    public UserResponse me(Object principal) {
+        if (principal instanceof UserPrincipal up) {
+            if (up.getFirebaseUid() != null) {
+                UserEntity user = userRepository.findByFirebaseUid(up.getFirebaseUid())
+                        .or(() -> userRepository.findByEmailIgnoreCase(normalize(up.getEmail())))
+                        .orElseThrow(InvalidCredentialsException::new);
+                return mapper.toResponse(user);
+            }
+            if (up.getEmail() != null) {
+                return me(up.getEmail());
+            }
+        }
+        if (principal instanceof String emailOrUid) {
+            return me(emailOrUid);
+        }
+        throw new InvalidCredentialsException();
+    }
+
+    public UserResponse me(String emailOrUid) {
+        String normalized = normalize(emailOrUid);
+        UserEntity user = userRepository.findByFirebaseUid(emailOrUid)
+                .or(() -> userRepository.findByEmailIgnoreCase(normalized))
                 .orElseThrow(InvalidCredentialsException::new);
         return mapper.toResponse(user);
     }
@@ -105,7 +190,7 @@ public class AuthService implements UserLookup {
     @Override
     public boolean isAdminByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(normalize(email))
-                .map(user -> user.getRole() == UserRole.ADMIN)
+                .map(user -> user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.ADMIN_LIGA)
                 .orElse(false);
     }
 
@@ -120,7 +205,6 @@ public class AuthService implements UserLookup {
         UserEntity entity = new UserEntity();
         entity.setName(request.name().trim());
         entity.setEmail(email);
-        entity.setPasswordHash(passwordEncoder.encode(request.password()));
         entity.setRole(request.role());
         entity.setStatus(UserStatus.ACTIVE);
 
@@ -140,14 +224,87 @@ public class AuthService implements UserLookup {
     public UserResponse approve(UUID id) {
         UserEntity user = findEntityById(id);
         user.setStatus(UserStatus.ACTIVE);
-        return mapper.toResponse(userRepository.save(user));
+        UserEntity saved = userRepository.save(user);
+        syncCustomClaims(saved);
+        return mapper.toResponse(saved);
     }
 
     @Transactional
     public UserResponse reject(UUID id) {
         UserEntity user = findEntityById(id);
         user.setStatus(UserStatus.REJECTED);
-        return mapper.toResponse(userRepository.save(user));
+        UserEntity saved = userRepository.save(user);
+        syncCustomClaims(saved);
+        return mapper.toResponse(saved);
+    }
+
+    @Transactional
+    public DevTokenResponse generateDevToken(DevTokenRequest request) {
+        String email = normalize(request.email());
+        UserEntity user = userRepository.findByEmailIgnoreCase(email).orElseGet(() -> {
+            UserEntity newUser = new UserEntity();
+            newUser.setEmail(email);
+            String name = request.name();
+            if (name == null || name.isBlank()) {
+                name = email.split("@")[0];
+            }
+            newUser.setName(name.trim());
+            newUser.setStatus(UserStatus.ACTIVE);
+            newUser.setRole(UserRole.ADMIN_LIGA);
+            newUser.setFirebaseUid("dev-" + UUID.randomUUID());
+            return newUser;
+        });
+
+        if (request.role() != null && !request.role().isBlank()) {
+            try {
+                user.setRole(UserRole.valueOf(request.role()));
+            } catch (Exception ignored) {}
+        }
+        if (request.organizationId() != null) {
+            user.setOrganizationId(request.organizationId());
+        }
+        if (request.clubId() != null) {
+            user.setClubId(request.clubId());
+        }
+        if (user.getFirebaseUid() == null) {
+            user.setFirebaseUid("dev-" + UUID.randomUUID());
+        }
+        user.setStatus(UserStatus.ACTIVE);
+
+        UserEntity saved = userRepository.save(user);
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", saved.getRole().name());
+        if (saved.getOrganizationId() != null) {
+            claims.put("organization_id", saved.getOrganizationId().toString());
+        }
+        if (saved.getClubId() != null) {
+            claims.put("club_id", saved.getClubId().toString());
+        }
+
+        String token = firebaseTokenService.generateDevToken(
+                saved.getFirebaseUid(),
+                saved.getEmail(),
+                saved.getName(),
+                claims
+        );
+
+        return new DevTokenResponse(token, mapper.toResponse(saved));
+    }
+
+    private void syncCustomClaims(UserEntity user) {
+        if (user.getFirebaseUid() != null && !user.getFirebaseUid().isBlank()) {
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("role", user.getRole().name());
+            if (user.getOrganizationId() != null) {
+                claims.put("organization_id", user.getOrganizationId().toString());
+            }
+            if (user.getClubId() != null) {
+                claims.put("club_id", user.getClubId().toString());
+            }
+            claims.put("status", user.getStatus().name());
+            firebaseTokenService.setCustomUserClaims(user.getFirebaseUid(), claims);
+        }
     }
 
     private UserEntity findEntityById(UUID id) {
@@ -155,76 +312,9 @@ public class AuthService implements UserLookup {
                 .orElseThrow(() -> new UserNotFoundException(id));
     }
 
-    @Transactional
-    public ForgotPasswordResponse requestPasswordReset(ForgotPasswordRequest request) {
-        String email = normalize(request.email());
-        UserEntity user = userRepository.findByEmailIgnoreCase(email).orElse(null);
-
-        if (user == null) {
-            // Não revela se o e-mail existe (evita enumeração).
-            return new ForgotPasswordResponse(
-                    "If the email exists, a reset link was sent.", null);
-        }
-
-        String token = generateToken();
-        PasswordResetTokenEntity entity = new PasswordResetTokenEntity();
-        entity.setUserId(user.getId());
-        entity.setTokenHash(hash(token));
-        entity.setExpiresAt(LocalDateTime.now().plusMinutes(resetExpirationMinutes));
-        resetTokenRepository.save(entity);
-
-        // SMTP ainda não configurado: em dev o token é retornado na resposta.
-        // Quando app.mail.enabled=true, enviar e-mail com o link (TODO: integração de e-mail).
-        String resetToken = mailEnabled ? null : token;
-
-        return new ForgotPasswordResponse(
-                "A password reset link was sent to your email.", resetToken);
-    }
-
-    @Transactional
-    public void resetPassword(ResetPasswordRequest request) {
-        PasswordResetTokenEntity token = resetTokenRepository
-                .findByTokenHashAndUsedAtIsNull(hash(request.token()))
-                .orElseThrow(InvalidResetTokenException::new);
-
-        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new InvalidResetTokenException();
-        }
-
-        UserEntity user = userRepository.findById(token.getUserId())
-                .orElseThrow(() -> new UserNotFoundException(token.getUserId()));
-
-        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
-        userRepository.save(user);
-
-        token.setUsedAt(LocalDateTime.now());
-        resetTokenRepository.save(token);
-    }
-
-    private String generateToken() {
-        return UUID.randomUUID().toString().replace("-", "")
-                + UUID.randomUUID().toString().replace("-", "");
-    }
-
-    private String hash(String value) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] bytes = digest.digest(value.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(bytes);
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 not available", ex);
-        }
-    }
-
-    private void requireActive(UserEntity user) {
-        if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new AccountPendingApprovalException(
-                    "Account is not active (status: %s).".formatted(user.getStatus()));
-        }
-    }
-
     private String normalize(String email) {
         return email == null ? null : email.trim().toLowerCase();
     }
 
 }
+

@@ -12,7 +12,11 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     Optional<UserEntity> findByEmailIgnoreCase(String email);
 
+    Optional<UserEntity> findByFirebaseUid(String firebaseUid);
+
     boolean existsByEmailIgnoreCase(String email);
+
+    boolean existsByFirebaseUid(String firebaseUid);
 
     List<UserEntity> findAllByOrderByNameAsc();
 

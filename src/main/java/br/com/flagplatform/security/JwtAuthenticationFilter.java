@@ -1,16 +1,16 @@
 package br.com.flagplatform.security;
 
+import br.com.flagplatform.user.entity.UserEntity;
+import br.com.flagplatform.user.service.AuthService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -18,14 +18,19 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * Filtro que autentica requisições com token JWT no cabeçalho Authorization.
+ * Filtro que autentica requisições com Firebase ID Token no cabeçalho Authorization.
+ * <p>
+ * O frontend (Flutter/Firebase Auth SDK) envia o Firebase ID Token em todas as
+ * requisições autenticadas. O filtro valida o token via {@link FirebaseTokenService},
+ * busca/provisiona o usuário no PostgreSQL e configura o contexto de segurança.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtTokenProvider tokenProvider;
-    private final UserDetailsService userDetailsService;
+    private final FirebaseTokenService firebaseTokenService;
+    private final AuthService authService;
 
     @Override
     protected void doFilterInternal(
@@ -35,21 +40,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = resolveToken(request);
 
-        if (token != null
-                && tokenProvider.isValid(token)
-                && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
-                String email = tokenProvider.extractEmail(token);
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            } catch (UsernameNotFoundException ex) {
-                // Token válido, mas o usuário não existe mais: não autentica.
+                firebaseTokenService.verifyToken(token)
+                        .ifPresent(firebaseUser -> {
+                            UserEntity user = authService.getOrProvisionFirebaseUser(firebaseUser);
+                            if (user != null) {
+                                UserPrincipal principal = new UserPrincipal(user);
+                                UsernamePasswordAuthenticationToken authentication =
+                                        new UsernamePasswordAuthenticationToken(
+                                                principal, null, principal.getAuthorities());
+                                authentication.setDetails(
+                                        new WebAuthenticationDetailsSource().buildDetails(request));
+                                SecurityContextHolder.getContext().setAuthentication(authentication);
+                            }
+                        });
+            } catch (Exception ex) {
+                log.warn("Erro ao autenticar usuário com Firebase ID Token: {}", ex.getMessage());
             }
         }
 

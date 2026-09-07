@@ -11,8 +11,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -38,9 +36,7 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_AUTH_PATTERNS = {
             "/api/v1/auth/register",
-            "/api/v1/auth/login",
-            "/api/v1/auth/forgot-password",
-            "/api/v1/auth/reset-password"
+            "/api/v1/auth/dev-token"
     };
 
     private static final String[] SWAGGER_PATTERNS = {
@@ -64,24 +60,19 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         // Métricas Prometheus (scraping)
                         .requestMatchers("/actuator/prometheus").permitAll()
-                        // Cadastro e login públicos
+                        // Cadastro público (login é via Firebase Auth SDK no frontend)
                         .requestMatchers(HttpMethod.POST, PUBLIC_AUTH_PATTERNS).permitAll()
-                        // Check-in de atletas exige role MESA/ADMIN (não é leitura pública)
+                        // Check-in de atletas exige role MESA/ADMIN/ADMIN_LIGA/REFEREE (não é leitura pública)
                         .requestMatchers(HttpMethod.GET, "/api/v1/games/*/checkin")
-                                .hasAnyRole("ADMIN", "MESA")
+                                .hasAnyRole("ADMIN", "MESA", "ADMIN_LIGA", "REFEREE")
                         // Leitura pública para todas as entidades
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET_PATTERNS).permitAll()
-                        // Escrita exige autenticação
+                        // Leitura pública já permitida acima; demais GETs exigem autenticação
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
 }

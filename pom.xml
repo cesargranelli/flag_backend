@@ -25,6 +25,9 @@
         <springdoc.version>3.0.3</springdoc.version>
         <spring-modulith.version>2.1.0</spring-modulith.version>
         <jjwt.version>0.12.6</jjwt.version>
+        <db.url>jdbc:postgresql://localhost:5432/flagplatform</db.url>
+        <db.username>flagplatform</db.username>
+        <db.password>flagplatform</db.password>
     </properties>
 
     <dependencyManagement>
@@ -99,6 +102,12 @@
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
+        <!-- JOOQ -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jooq</artifactId>
+        </dependency>
+
         <!-- OpenAPI / Swagger (SpringDoc 3.x = Spring Boot 4.x) -->
         <dependency>
             <groupId>org.springdoc</groupId>
@@ -123,6 +132,20 @@
             <artifactId>jjwt-jackson</artifactId>
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- Firebase Admin SDK (exclui Apache HTTP para forçar NetHttpTransport nativo do Java) -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.4.3</version>
+            <exclusions>
+                <!-- Apache HttpClient 5 causa "Not in GZIP format" com JDK 25+ -->
+                <exclusion>
+                    <groupId>com.google.http-client</groupId>
+                    <artifactId>google-http-client-apache-v2</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- MapStruct -->
@@ -196,6 +219,37 @@
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jooq</groupId>
+                <artifactId>jooq-codegen-maven</artifactId>
+                <configuration>
+                    <jdbc>
+                        <driver>org.postgresql.Driver</driver>
+                        <url>${db.url}</url>
+                        <user>${db.username}</user>
+                        <password>${db.password}</password>
+                    </jdbc>
+                    <generator>
+                        <database>
+                            <name>org.jooq.meta.postgres.PostgresDatabase</name>
+                            <includes>.*</includes>
+                            <excludes>flyway_schema_history</excludes>
+                            <inputSchema>platform</inputSchema>
+                        </database>
+                        <target>
+                            <packageName>br.com.flagplatform.infrastructure.jooq</packageName>
+                            <directory>target/generated-sources/jooq</directory>
+                        </target>
+                    </generator>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.postgresql</groupId>
+                        <artifactId>postgresql</artifactId>
+                        <version>${postgresql.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>

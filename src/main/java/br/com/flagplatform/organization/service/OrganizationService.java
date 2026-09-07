@@ -43,11 +43,17 @@ public class OrganizationService implements OrganizationLookup {
             OrganizationType.ASSOCIATION);
 
     /**
-     * Tipos que podem ser associados como organização filha (clube/universidade).
+     * Tipos que podem ser associados como organização filha na governança (ADR-009).
      */
     private static final List<OrganizationType> CHILD_TYPES = List.of(
-            OrganizationType.CLUB,
-            OrganizationType.UNIVERSITY);
+            OrganizationType.LEAGUE,
+            OrganizationType.ASSOCIATION);
+
+    /**
+     * Tipos válidos de organização conforme o modelo de domínio (ADR-009).
+     */
+    private static final List<OrganizationType> VALID_ORGANIZATION_TYPES = List.of(
+            OrganizationType.values());
 
     private final OrganizationMapper mapper;
     private final OrganizationRepository repository;
@@ -75,10 +81,12 @@ public class OrganizationService implements OrganizationLookup {
         boolean showAll = includeDisabled && isAdmin;
 
         Page<OrganizationEntity> result = showAll
-                ? repository.findAll(
+                ? repository.findAllByOrganizationTypeIn(
+                        VALID_ORGANIZATION_TYPES,
                         PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "tradeName")))
-                : repository.findAllByStatus(
+                : repository.findAllByStatusAndOrganizationTypeIn(
                         OrganizationStatus.ACTIVE,
+                        VALID_ORGANIZATION_TYPES,
                         PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "tradeName")));
 
         return new PagedResponse<>(
@@ -130,7 +138,7 @@ public class OrganizationService implements OrganizationLookup {
         }
         if (!CHILD_TYPES.contains(child.getOrganizationType())) {
             throw new InvalidOrganizationHierarchyException(
-                    "A organização filha deve ser CLUBE ou UNIVERSIDADE.");
+                    "A organização filha deve ser LIGA ou ASSOCIAÇÃO.");
         }
         if (child.getParentId() != null) {
             throw new OrganizationAssociationConflictException(clubId, child.getParentId());

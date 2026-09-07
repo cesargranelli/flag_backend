@@ -19,6 +19,9 @@ public class TeamEntity extends BaseEntity {
     @Column(name = "organization_id", nullable = false)
     private UUID organizationId;
 
+    @Column(name = "club_id")
+    private UUID clubId;
+
     @Column(nullable = false, length = 255)
     private String name;
 

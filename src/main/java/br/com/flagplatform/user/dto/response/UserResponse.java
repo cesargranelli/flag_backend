@@ -12,6 +12,9 @@ public record UserResponse(
         String email,
         UserRole role,
         UserStatus status,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String firebaseUid,
+        UUID organizationId,
+        UUID clubId
 ) {
 }
