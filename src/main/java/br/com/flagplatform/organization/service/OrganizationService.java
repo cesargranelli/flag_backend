@@ -49,6 +49,12 @@ public class OrganizationService implements OrganizationLookup {
             OrganizationType.LEAGUE,
             OrganizationType.ASSOCIATION);
 
+    /**
+     * Tipos válidos de organização conforme o modelo de domínio (ADR-009).
+     */
+    private static final List<OrganizationType> VALID_ORGANIZATION_TYPES = List.of(
+            OrganizationType.values());
+
     private final OrganizationMapper mapper;
     private final OrganizationRepository repository;
 
@@ -75,10 +81,12 @@ public class OrganizationService implements OrganizationLookup {
         boolean showAll = includeDisabled && isAdmin;
 
         Page<OrganizationEntity> result = showAll
-                ? repository.findAll(
+                ? repository.findAllByOrganizationTypeIn(
+                        VALID_ORGANIZATION_TYPES,
                         PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "tradeName")))
-                : repository.findAllByStatus(
+                : repository.findAllByStatusAndOrganizationTypeIn(
                         OrganizationStatus.ACTIVE,
+                        VALID_ORGANIZATION_TYPES,
                         PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "tradeName")));
 
         return new PagedResponse<>(

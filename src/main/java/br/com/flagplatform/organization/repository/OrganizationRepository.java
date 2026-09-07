@@ -30,6 +30,12 @@ public interface OrganizationRepository extends JpaRepository<OrganizationEntity
 
     Page<OrganizationEntity> findAllByStatus(OrganizationStatus status, Pageable pageable);
 
+    Page<OrganizationEntity> findAllByOrganizationTypeIn(
+            Collection<OrganizationType> organizationTypes, Pageable pageable);
+
+    Page<OrganizationEntity> findAllByStatusAndOrganizationTypeIn(
+            OrganizationStatus status, Collection<OrganizationType> organizationTypes, Pageable pageable);
+
     List<OrganizationEntity> findAllByParentIdAndOrganizationTypeInOrderByTradeNameAsc(
             UUID parentId, Collection<OrganizationType> organizationTypes);
 
