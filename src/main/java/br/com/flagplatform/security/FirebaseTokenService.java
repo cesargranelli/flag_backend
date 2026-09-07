@@ -81,4 +81,44 @@ public class FirebaseTokenService {
             return Optional.empty();
         }
     }
+
+    public void setCustomUserClaims(String uid, Map<String, Object> claims) {
+        if (firebaseAuth != null) {
+            try {
+                firebaseAuth.setCustomUserClaims(uid, claims);
+                log.info("Custom claims atualizadas no Firebase para uid={}: {}", uid, claims);
+            } catch (Exception ex) {
+                log.error("Erro ao definir custom claims no Firebase para uid={}: {}", uid, ex.getMessage());
+            }
+        }
+    }
+
+    public String generateDevToken(String uid, String email, String name, Map<String, Object> claims) {
+        try {
+            Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("sub", uid);
+            payload.put("user_id", uid);
+            payload.put("email", email);
+            payload.put("name", name != null ? name : email.split("@")[0]);
+            payload.put("iss", "https://securetoken.google.com/flag-platform-dev");
+            payload.put("aud", "flag-platform-dev");
+            payload.put("auth_time", System.currentTimeMillis() / 1000);
+            payload.put("iat", System.currentTimeMillis() / 1000);
+            payload.put("exp", (System.currentTimeMillis() / 1000) + 86400);
+            if (claims != null) {
+                payload.putAll(claims);
+            }
+
+            String headerJson = "{\"alg\":\"none\",\"typ\":\"JWT\"}";
+            String payloadJson = objectMapper.writeValueAsString(payload);
+
+            String headerB64 = Base64.getUrlEncoder().withoutPadding().encodeToString(headerJson.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            String payloadB64 = Base64.getUrlEncoder().withoutPadding().encodeToString(payloadJson.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+            return headerB64 + "." + payloadB64 + ".dev-signature";
+        } catch (Exception ex) {
+            throw new RuntimeException("Falha ao gerar dev token", ex);
+        }
+    }
 }
+
