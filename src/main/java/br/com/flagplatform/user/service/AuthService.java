@@ -7,7 +7,9 @@ import br.com.flagplatform.security.FirebaseTokenService;
 import br.com.flagplatform.security.UserPrincipal;
 import br.com.flagplatform.user.UserLookup;
 import br.com.flagplatform.user.dto.request.CreateUserRequest;
+import br.com.flagplatform.user.dto.request.DevTokenRequest;
 import br.com.flagplatform.user.dto.request.RegisterRequest;
+import br.com.flagplatform.user.dto.response.DevTokenResponse;
 import br.com.flagplatform.user.dto.response.UserResponse;
 import br.com.flagplatform.user.entity.UserEntity;
 import br.com.flagplatform.user.exception.AccountPendingApprovalException;
@@ -23,7 +25,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -220,14 +224,87 @@ public class AuthService implements UserLookup {
     public UserResponse approve(UUID id) {
         UserEntity user = findEntityById(id);
         user.setStatus(UserStatus.ACTIVE);
-        return mapper.toResponse(userRepository.save(user));
+        UserEntity saved = userRepository.save(user);
+        syncCustomClaims(saved);
+        return mapper.toResponse(saved);
     }
 
     @Transactional
     public UserResponse reject(UUID id) {
         UserEntity user = findEntityById(id);
         user.setStatus(UserStatus.REJECTED);
-        return mapper.toResponse(userRepository.save(user));
+        UserEntity saved = userRepository.save(user);
+        syncCustomClaims(saved);
+        return mapper.toResponse(saved);
+    }
+
+    @Transactional
+    public DevTokenResponse generateDevToken(DevTokenRequest request) {
+        String email = normalize(request.email());
+        UserEntity user = userRepository.findByEmailIgnoreCase(email).orElseGet(() -> {
+            UserEntity newUser = new UserEntity();
+            newUser.setEmail(email);
+            String name = request.name();
+            if (name == null || name.isBlank()) {
+                name = email.split("@")[0];
+            }
+            newUser.setName(name.trim());
+            newUser.setStatus(UserStatus.ACTIVE);
+            newUser.setRole(UserRole.ADMIN_LIGA);
+            newUser.setFirebaseUid("dev-" + UUID.randomUUID());
+            return newUser;
+        });
+
+        if (request.role() != null && !request.role().isBlank()) {
+            try {
+                user.setRole(UserRole.valueOf(request.role()));
+            } catch (Exception ignored) {}
+        }
+        if (request.organizationId() != null) {
+            user.setOrganizationId(request.organizationId());
+        }
+        if (request.clubId() != null) {
+            user.setClubId(request.clubId());
+        }
+        if (user.getFirebaseUid() == null) {
+            user.setFirebaseUid("dev-" + UUID.randomUUID());
+        }
+        user.setStatus(UserStatus.ACTIVE);
+
+        UserEntity saved = userRepository.save(user);
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", saved.getRole().name());
+        if (saved.getOrganizationId() != null) {
+            claims.put("organization_id", saved.getOrganizationId().toString());
+        }
+        if (saved.getClubId() != null) {
+            claims.put("club_id", saved.getClubId().toString());
+        }
+
+        String token = firebaseTokenService.generateDevToken(
+                saved.getFirebaseUid(),
+                saved.getEmail(),
+                saved.getName(),
+                claims
+        );
+
+        return new DevTokenResponse(token, mapper.toResponse(saved));
+    }
+
+    private void syncCustomClaims(UserEntity user) {
+        if (user.getFirebaseUid() != null && !user.getFirebaseUid().isBlank()) {
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("role", user.getRole().name());
+            if (user.getOrganizationId() != null) {
+                claims.put("organization_id", user.getOrganizationId().toString());
+            }
+            if (user.getClubId() != null) {
+                claims.put("club_id", user.getClubId().toString());
+            }
+            claims.put("status", user.getStatus().name());
+            firebaseTokenService.setCustomUserClaims(user.getFirebaseUid(), claims);
+        }
     }
 
     private UserEntity findEntityById(UUID id) {
@@ -240,3 +317,4 @@ public class AuthService implements UserLookup {
     }
 
 }
+

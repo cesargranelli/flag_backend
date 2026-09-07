@@ -2,7 +2,9 @@ package br.com.flagplatform.user.controller;
 
 import br.com.flagplatform.common.security.SecurityExpressions;
 import br.com.flagplatform.user.dto.request.CreateUserRequest;
+import br.com.flagplatform.user.dto.request.DevTokenRequest;
 import br.com.flagplatform.user.dto.request.RegisterRequest;
+import br.com.flagplatform.user.dto.response.DevTokenResponse;
 import br.com.flagplatform.user.dto.response.UserResponse;
 import br.com.flagplatform.user.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,6 +41,16 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse register(@Valid @RequestBody RegisterRequest request) {
         return service.register(request);
+    }
+
+    @Operation(
+            summary = "Emitir token de desenvolvimento/teste",
+            description = "Gera um token JWT com claims compatível com o parser de desenvolvimento do backend. Uso em dev/test."
+    )
+    @PostMapping("/dev-token")
+    @ResponseStatus(HttpStatus.OK)
+    public DevTokenResponse generateDevToken(@Valid @RequestBody DevTokenRequest request) {
+        return service.generateDevToken(request);
     }
 
     @Operation(
