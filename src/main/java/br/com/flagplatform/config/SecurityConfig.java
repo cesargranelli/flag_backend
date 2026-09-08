@@ -32,6 +32,7 @@ public class SecurityConfig {
             "/api/v1/games/**",
             "/api/v1/standings/**",
             "/api/v1/athletes/**",
+            "/api/v1/affiliation-windows/**",
             "/api/v1/uploads/**"
     };
 
