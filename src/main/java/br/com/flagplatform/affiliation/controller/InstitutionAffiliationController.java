@@ -71,4 +71,41 @@ public class InstitutionAffiliationController {
             Authentication authentication) {
         return service.reject(organizationId, affiliationId, req, authentication.getName());
     }
+
+    // -------------------------------------------------------------------------
+    // Endpoints de Janelas / Períodos de Filiação
+    // -------------------------------------------------------------------------
+
+    @Operation(summary = "Abrir ou atualizar período de filiação de uma organização para uma temporada")
+    @PostMapping("/api/v1/organizations/{organizationId}/affiliation-windows")
+    @PreAuthorize(SecurityExpressions.ORGANIZATION_WRITE)
+    public br.com.flagplatform.affiliation.dto.AffiliationWindowResponse openWindow(
+            @PathVariable UUID organizationId,
+            @Valid @RequestBody br.com.flagplatform.affiliation.dto.CreateAffiliationWindowRequest req,
+            Authentication authentication) {
+        return service.openWindow(organizationId, req, authentication.getName());
+    }
+
+    @Operation(summary = "Encerrar período de filiação de uma organização para uma temporada")
+    @PostMapping("/api/v1/organizations/{organizationId}/affiliation-windows/{season}/close")
+    @PreAuthorize(SecurityExpressions.ORGANIZATION_WRITE)
+    public br.com.flagplatform.affiliation.dto.AffiliationWindowResponse closeWindow(
+            @PathVariable UUID organizationId,
+            @PathVariable String season) {
+        return service.closeWindow(organizationId, season);
+    }
+
+    @Operation(summary = "Listar períodos de filiação cadastrados por uma organização")
+    @GetMapping("/api/v1/organizations/{organizationId}/affiliation-windows")
+    public List<br.com.flagplatform.affiliation.dto.AffiliationWindowResponse> listWindows(
+            @PathVariable UUID organizationId) {
+        return service.listWindows(organizationId);
+    }
+
+    @Operation(summary = "Listar organizações que estão com período de filiação ABERTO no momento")
+    @GetMapping("/api/v1/affiliation-windows/open")
+    public List<br.com.flagplatform.affiliation.dto.AffiliationWindowResponse> listOpenWindows() {
+        return service.listOpenWindows();
+    }
 }
+

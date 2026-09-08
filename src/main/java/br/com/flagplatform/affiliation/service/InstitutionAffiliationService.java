@@ -28,6 +28,7 @@ public class InstitutionAffiliationService {
     private final InstitutionRepository institutionRepository;
     private final OrganizationRepository organizationRepository;
     private final InstitutionOrganizationRepository institutionOrganizationRepository;
+    private final br.com.flagplatform.affiliation.repository.AffiliationWindowRepository windowRepository;
 
     @Transactional
     public AffiliationResponse requestAffiliation(UUID institutionId, RequestAffiliationRequest req, String userEmail) {
@@ -35,6 +36,14 @@ public class InstitutionAffiliationService {
                 .orElseThrow(() -> new EntityNotFoundException("Agremiação não encontrada"));
         var organization = organizationRepository.findById(req.organizationId())
                 .orElseThrow(() -> new EntityNotFoundException("Organização não encontrada"));
+
+        // Validação da Janela de Filiação (Período de Inscrição da Temporada)
+        var windowOpt = windowRepository.findByOrganizationIdAndSeason(req.organizationId(), req.season());
+        if (windowOpt.isEmpty() || !windowOpt.get().isOpen()) {
+            throw new IllegalStateException(
+                    "O período de inscrições de filiação para a temporada " + req.season()
+                            + " está encerrado ou ainda não foi aberto por esta organização.");
+        }
 
         var existing = affiliationRepository.findByInstitutionIdAndOrganizationIdAndSeason(
                 institutionId, req.organizationId(), req.season());
@@ -151,6 +160,96 @@ public class InstitutionAffiliationService {
         var inst = institutionRepository.findById(affil.getInstitutionId()).orElse(null);
         var org = organizationRepository.findById(organizationId).orElse(null);
         return toResponse(saved, inst, org);
+    }
+
+    // -------------------------------------------------------------------------
+    // Gestão de Janelas / Períodos de Filiação
+    // -------------------------------------------------------------------------
+
+    @Transactional
+    public br.com.flagplatform.affiliation.dto.AffiliationWindowResponse openWindow(
+            UUID organizationId,
+            br.com.flagplatform.affiliation.dto.CreateAffiliationWindowRequest req,
+            String userEmail) {
+        var org = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new EntityNotFoundException("Organização não encontrada"));
+
+        if (req.endDate().isBefore(req.startDate())) {
+            throw new IllegalArgumentException("A data final não pode ser anterior à data de início");
+        }
+
+        var entity = windowRepository.findByOrganizationIdAndSeason(organizationId, req.season())
+                .orElseGet(() -> {
+                    var w = new br.com.flagplatform.affiliation.entity.AffiliationWindowEntity();
+                    w.setOrganizationId(organizationId);
+                    w.setSeason(req.season());
+                    return w;
+                });
+
+        entity.setTitle(req.title());
+        entity.setStartDate(req.startDate());
+        entity.setEndDate(req.endDate());
+        entity.setStatus("OPEN");
+        entity.setInstructions(req.instructions());
+        entity.setCreatedByEmail(userEmail);
+
+        var saved = windowRepository.save(entity);
+        return toWindowResponse(saved, org.getTradeName());
+    }
+
+    @Transactional
+    public br.com.flagplatform.affiliation.dto.AffiliationWindowResponse closeWindow(
+            UUID organizationId,
+            String season) {
+        var org = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new EntityNotFoundException("Organização não encontrada"));
+
+        var entity = windowRepository.findByOrganizationIdAndSeason(organizationId, season)
+                .orElseThrow(() -> new EntityNotFoundException("Período de filiação não encontrado"));
+
+        entity.setStatus("CLOSED");
+        var saved = windowRepository.save(entity);
+        return toWindowResponse(saved, org.getTradeName());
+    }
+
+    @Transactional(readOnly = true)
+    public List<br.com.flagplatform.affiliation.dto.AffiliationWindowResponse> listWindows(UUID organizationId) {
+        var org = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new EntityNotFoundException("Organização não encontrada"));
+
+        return windowRepository.findAllByOrganizationIdOrderBySeasonDesc(organizationId).stream()
+                .map(w -> toWindowResponse(w, org.getTradeName()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<br.com.flagplatform.affiliation.dto.AffiliationWindowResponse> listOpenWindows() {
+        return windowRepository.findAllByStatus("OPEN").stream()
+                .filter(br.com.flagplatform.affiliation.entity.AffiliationWindowEntity::isOpen)
+                .map(w -> {
+                    var org = organizationRepository.findById(w.getOrganizationId()).orElse(null);
+                    return toWindowResponse(w, org != null ? org.getTradeName() : "Organização");
+                })
+                .toList();
+    }
+
+    private br.com.flagplatform.affiliation.dto.AffiliationWindowResponse toWindowResponse(
+            br.com.flagplatform.affiliation.entity.AffiliationWindowEntity entity,
+            String orgName) {
+        return new br.com.flagplatform.affiliation.dto.AffiliationWindowResponse(
+                entity.getId(),
+                entity.getOrganizationId(),
+                orgName,
+                entity.getSeason(),
+                entity.getTitle(),
+                entity.getStartDate(),
+                entity.getEndDate(),
+                entity.getStatus(),
+                entity.isOpen(),
+                entity.getInstructions(),
+                entity.getCreatedAt(),
+                entity.getCreatedByEmail()
+        );
     }
 
     private AffiliationResponse toResponse(InstitutionAffiliationEntity entity, InstitutionEntity inst, OrganizationEntity org) {
