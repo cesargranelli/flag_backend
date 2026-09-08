@@ -3,6 +3,7 @@ package br.com.flagplatform.team.service;
 import br.com.flagplatform.common.enums.CompetitionTeamStatus;
 import br.com.flagplatform.common.enums.OrganizationStatus;
 import br.com.flagplatform.competition.CompetitionLookup;
+import br.com.flagplatform.institution.InstitutionLookup;
 import br.com.flagplatform.organization.OrganizationLookup;
 import br.com.flagplatform.team.TeamInfo;
 import br.com.flagplatform.team.TeamLookup;
@@ -35,6 +36,7 @@ public class TeamService implements TeamLookup {
     private final TeamRepository teamRepository;
     private final CompetitionTeamRepository competitionTeamRepository;
     private final OrganizationLookup organizationLookup;
+    private final InstitutionLookup institutionLookup;
     private final CompetitionLookup competitionLookup;
 
     @Transactional
@@ -53,8 +55,29 @@ public class TeamService implements TeamLookup {
         return toResponse(teamRepository.save(entity));
     }
 
+    @Transactional
+    public TeamResponse createForInstitution(UUID institutionId, CreateTeamRequest request, String currentUserEmail) {
+        institutionLookup.assertExists(institutionId);
+
+        if (teamRepository.existsByClubIdAndNameIgnoreCase(
+                institutionId, request.name())) {
+            throw new DuplicateTeamNameException(request.name());
+        }
+
+        TeamEntity entity = mapper.toEntity(request);
+        entity.setClubId(institutionId);
+        entity.setOrganizationId(institutionId); // Mantém compatibilidade com coluna NOT NULL legada
+        entity.setStatus(OrganizationStatus.ACTIVE);
+
+        return toResponse(teamRepository.save(entity));
+    }
+
     public List<TeamResponse> findByOrganizationId(UUID organizationId) {
         return toResponseList(teamRepository.findAllByOrganizationIdOrderByNameAsc(organizationId));
+    }
+
+    public List<TeamResponse> findByInstitutionId(UUID institutionId) {
+        return toResponseList(teamRepository.findAllByClubIdOrderByNameAsc(institutionId));
     }
 
     public TeamResponse findById(UUID id) {
@@ -242,17 +265,22 @@ public class TeamService implements TeamLookup {
     }
 
     /**
-     * Resolve o nome da organização (clube) para enriquecer o TeamResponse.
+     * Resolve o nome da organização / agremiação para enriquecer o TeamResponse.
      */
     private TeamResponse toResponse(TeamEntity entity) {
         TeamResponse base = mapper.toResponse(entity);
         String organizationName = entity.getOrganizationId() != null
                 ? organizationLookup.findTradeNameById(entity.getOrganizationId())
                 : null;
+        String clubName = entity.getClubId() != null
+                ? institutionLookup.findTradeNameById(entity.getClubId())
+                : null;
         return new TeamResponse(
                 base.id(),
                 base.organizationId(),
                 organizationName,
+                entity.getClubId(),
+                clubName,
                 base.name(),
                 base.shortName(),
                 base.sportName(),

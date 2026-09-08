@@ -24,6 +24,7 @@ public interface TeamMapper {
             UpdateTeamRequest request);
 
     @Mapping(target = "organizationName", ignore = true)
+    @Mapping(target = "clubName", ignore = true)
     TeamResponse toResponse(TeamEntity entity);
 
     List<TeamResponse> toResponseList(List<TeamEntity> entities);

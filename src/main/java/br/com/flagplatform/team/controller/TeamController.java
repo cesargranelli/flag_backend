@@ -52,6 +52,30 @@ public class TeamController {
     }
 
     @Operation(
+            summary = "Criar time de instituição/agremiação",
+            description = "Cria um time dentro de uma instituição (clube/universidade). Permitido para ADMIN, ORGANIZER ou MANAGER."
+    )
+    @PostMapping("/api/v1/institutions/{institutionId}/teams")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize(SecurityExpressions.INSTITUTION_WRITE)
+    public TeamResponse createForInstitution(
+            @Parameter(description = "Id da instituição (clube/universidade)") @PathVariable UUID institutionId,
+            @Valid @RequestBody CreateTeamRequest request,
+            Authentication authentication) {
+        return service.createForInstitution(institutionId, request, authentication.getName());
+    }
+
+    @Operation(
+            summary = "Listar times de uma instituição/agremiação",
+            description = "Lista os times de uma instituição (clube/universidade), ordenados por nome. Acesso público."
+    )
+    @GetMapping("/api/v1/institutions/{institutionId}/teams")
+    public List<TeamResponse> findByInstitutionId(
+            @Parameter(description = "Id da instituição") @PathVariable UUID institutionId) {
+        return service.findByInstitutionId(institutionId);
+    }
+
+    @Operation(
             summary = "Listar times de um clube",
             description = "Lista os times de uma organização (clube), ordenados por nome. Acesso público."
     )
@@ -82,10 +106,10 @@ public class TeamController {
 
     @Operation(
             summary = "Atualizar time",
-            description = "Atualiza um time existente. Permitido apenas para ADMIN ou ORGANIZER."
+            description = "Atualiza um time existente. Permitido para ADMIN, ORGANIZER ou MANAGER."
     )
     @PutMapping("/api/v1/teams/{id}")
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    @PreAuthorize(SecurityExpressions.INSTITUTION_WRITE)
     public TeamResponse update(
             @Parameter(description = "Id do time") @PathVariable UUID id,
             @Valid @RequestBody UpdateTeamRequest request,
@@ -95,11 +119,11 @@ public class TeamController {
 
     @Operation(
             summary = "Excluir time",
-            description = "Remove um time. Permitido apenas para ADMIN ou ORGANIZER."
+            description = "Remove um time. Permitido para ADMIN, ORGANIZER ou MANAGER."
     )
     @DeleteMapping("/api/v1/teams/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    @PreAuthorize(SecurityExpressions.INSTITUTION_WRITE)
     public void delete(
             @Parameter(description = "Id do time") @PathVariable UUID id,
             Authentication authentication) {
@@ -108,10 +132,10 @@ public class TeamController {
 
     @Operation(
             summary = "Desativar time",
-            description = "Exclusão lógica: marca o time como INACTIVE. Permitido apenas para ADMIN ou ORGANIZER."
+            description = "Exclusão lógica: marca o time como INACTIVE. Permitido para ADMIN, ORGANIZER ou MANAGER."
     )
     @PostMapping("/api/v1/teams/{id}/deactivate")
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    @PreAuthorize(SecurityExpressions.INSTITUTION_WRITE)
     public void deactivate(
             @Parameter(description = "Id do time") @PathVariable UUID id,
             Authentication authentication) {
@@ -120,10 +144,10 @@ public class TeamController {
 
     @Operation(
             summary = "Reativar time",
-            description = "Reverte a desativação lógica, voltando o time para ACTIVE. Permitido apenas para ADMIN ou ORGANIZER."
+            description = "Reverte a desativação lógica, voltando o time para ACTIVE. Permitido para ADMIN, ORGANIZER ou MANAGER."
     )
     @PostMapping("/api/v1/teams/{id}/reactivate")
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    @PreAuthorize(SecurityExpressions.INSTITUTION_WRITE)
     public void reactivate(
             @Parameter(description = "Id do time") @PathVariable UUID id,
             Authentication authentication) {

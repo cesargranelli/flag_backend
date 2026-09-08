@@ -24,6 +24,7 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_GET_PATTERNS = {
             "/api/v1/organizations/**",
+            "/api/v1/institutions/**",
             "/api/v1/competitions/**",
             "/api/v1/venues/**",
             "/api/v1/teams/**",

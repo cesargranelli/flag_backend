@@ -1,5 +1,6 @@
 package br.com.flagplatform.institution.service;
 
+import br.com.flagplatform.institution.InstitutionLookup;
 import br.com.flagplatform.institution.dto.request.CreateInstitutionRequest;
 import br.com.flagplatform.institution.dto.request.UpdateInstitutionRequest;
 import br.com.flagplatform.institution.dto.response.InstitutionResponse;
@@ -18,7 +19,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class InstitutionService {
+public class InstitutionService implements InstitutionLookup {
 
     private final InstitutionRepository repository;
     private final InstitutionOrganizationRepository orgRepo;
@@ -153,5 +154,19 @@ public class InstitutionService {
         var e = repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Institution not found"));
         orgRepo.setOrganizations(id, orgIds == null ? List.of() : orgIds);
         return mapper.toResponse(e, orgRepo.findOrganizationIds(id));
+    }
+
+    @Override
+    public void assertExists(UUID id) {
+        if (!repository.existsById(id)) {
+            throw new EntityNotFoundException("Institution not found with id: " + id);
+        }
+    }
+
+    @Override
+    public String findTradeNameById(UUID id) {
+        return repository.findById(id)
+                .map(InstitutionEntity::getTradeName)
+                .orElse(null);
     }
 }
