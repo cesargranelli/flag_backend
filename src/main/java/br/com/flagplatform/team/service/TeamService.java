@@ -66,7 +66,7 @@ public class TeamService implements TeamLookup {
 
         TeamEntity entity = mapper.toEntity(request);
         entity.setClubId(institutionId);
-        entity.setOrganizationId(institutionId); // Mantém compatibilidade com coluna NOT NULL legada
+        entity.setOrganizationId(null);
         entity.setStatus(OrganizationStatus.ACTIVE);
 
         return toResponse(teamRepository.save(entity));

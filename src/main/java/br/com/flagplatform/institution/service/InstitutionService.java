@@ -159,7 +159,7 @@ public class InstitutionService implements InstitutionLookup {
     @Override
     public void assertExists(UUID id) {
         if (!repository.existsById(id)) {
-            throw new EntityNotFoundException("Institution not found with id: " + id);
+            throw new br.com.flagplatform.institution.exception.InstitutionNotFoundException(id);
         }
     }
 

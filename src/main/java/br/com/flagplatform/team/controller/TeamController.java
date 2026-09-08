@@ -51,29 +51,7 @@ public class TeamController {
         return service.create(organizationId, request, authentication.getName());
     }
 
-    @Operation(
-            summary = "Criar time de instituição/agremiação",
-            description = "Cria um time dentro de uma instituição (clube/universidade). Permitido para ADMIN, ORGANIZER ou MANAGER."
-    )
-    @PostMapping("/api/v1/institutions/{institutionId}/teams")
-    @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize(SecurityExpressions.INSTITUTION_WRITE)
-    public TeamResponse createForInstitution(
-            @Parameter(description = "Id da instituição (clube/universidade)") @PathVariable UUID institutionId,
-            @Valid @RequestBody CreateTeamRequest request,
-            Authentication authentication) {
-        return service.createForInstitution(institutionId, request, authentication.getName());
-    }
 
-    @Operation(
-            summary = "Listar times de uma instituição/agremiação",
-            description = "Lista os times de uma instituição (clube/universidade), ordenados por nome. Acesso público."
-    )
-    @GetMapping("/api/v1/institutions/{institutionId}/teams")
-    public List<TeamResponse> findByInstitutionId(
-            @Parameter(description = "Id da instituição") @PathVariable UUID institutionId) {
-        return service.findByInstitutionId(institutionId);
-    }
 
     @Operation(
             summary = "Listar times de um clube",
