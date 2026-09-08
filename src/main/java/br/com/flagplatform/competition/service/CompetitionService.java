@@ -57,9 +57,11 @@ public class CompetitionService implements CompetitionLookup {
         if (entity.getStatus() == null) {
             entity.setStatus(CompetitionStatus.DRAFT);
         }
-        // Issue #308: rótulo do agrupamento — default DIVISIONS.
+        if (entity.getTournamentFormat() == null) {
+            entity.setTournamentFormat(br.com.flagplatform.common.enums.TournamentFormat.ROUND_ROBIN);
+        }
         if (entity.getGroupingType() == null) {
-            entity.setGroupingType(GroupingType.DIVISIONS);
+            entity.setGroupingType(GroupingType.NONE);
         }
         // V260: registra quem criou o campeonato — base da regra de
         // edição restrita ao criador (ou ADMIN).
@@ -217,6 +219,7 @@ public class CompetitionService implements CompetitionLookup {
     private CompetitionSummaryResponse toSummary(CompetitionEntity entity) {
         return new CompetitionSummaryResponse(
                 entity.getId(),
+                entity.getOrganizationId(),
                 entity.getName(),
                 organizationLookup.findTradeNameById(entity.getOrganizationId()),
                 entity.getStatus(),
@@ -245,7 +248,9 @@ public class CompetitionService implements CompetitionLookup {
                 base.startDate(),
                 base.endDate(),
                 base.status(),
+                base.tournamentFormat(),
                 base.groupingType(),
+                base.groupingConfig(),
                 base.season(),
                 base.createdBy(),
                 base.createdAt(),

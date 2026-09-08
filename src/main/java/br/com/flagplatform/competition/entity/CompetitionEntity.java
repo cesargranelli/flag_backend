@@ -55,11 +55,16 @@ public class CompetitionEntity extends BaseEntity {
     @Column(nullable = false)
     private CompetitionStatus status;
 
-    // Issue #308: rótulo do agrupamento (DIVISIONS | GROUPS) — mesma
-    // dinâmica de divisões, mudando apenas o label. Nulo = legado
-    // (tratado como DIVISIONS).
+    @Column(name = "tournament_format", nullable = false, length = 30)
+    private br.com.flagplatform.common.enums.TournamentFormat tournamentFormat;
+
+    // Issue #308: rótulo do agrupamento (NONE | GROUPS | CONFERENCES | DIVISIONS)
     @Column(name = "grouping_type", length = 20)
     private GroupingType groupingType;
+
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "grouping_config", columnDefinition = "jsonb")
+    private java.util.Map<String, Object> groupingConfig;
 
     @Column(nullable = false, length = 50)
     private String season;

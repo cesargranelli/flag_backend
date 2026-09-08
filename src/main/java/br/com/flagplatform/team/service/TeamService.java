@@ -1,13 +1,14 @@
 package br.com.flagplatform.team.service;
 
+import br.com.flagplatform.common.enums.CompetitionTeamStatus;
 import br.com.flagplatform.common.enums.OrganizationStatus;
-import br.com.flagplatform.division.DivisionLookup;
-import br.com.flagplatform.division.exception.DivisionCompetitionMismatchException;
+import br.com.flagplatform.competition.CompetitionLookup;
 import br.com.flagplatform.organization.OrganizationLookup;
 import br.com.flagplatform.team.TeamInfo;
 import br.com.flagplatform.team.TeamLookup;
 import br.com.flagplatform.team.dto.request.CreateTeamRequest;
 import br.com.flagplatform.team.dto.request.EnrollTeamRequest;
+import br.com.flagplatform.team.dto.request.UpdateCompetitionTeamRequest;
 import br.com.flagplatform.team.dto.request.UpdateTeamRequest;
 import br.com.flagplatform.team.dto.response.CompetitionTeamResponse;
 import br.com.flagplatform.team.dto.response.TeamResponse;
@@ -34,7 +35,7 @@ public class TeamService implements TeamLookup {
     private final TeamRepository teamRepository;
     private final CompetitionTeamRepository competitionTeamRepository;
     private final OrganizationLookup organizationLookup;
-    private final DivisionLookup divisionLookup;
+    private final CompetitionLookup competitionLookup;
 
     @Transactional
     public TeamResponse create(UUID organizationId, CreateTeamRequest request, String currentUserEmail) {
@@ -101,15 +102,9 @@ public class TeamService implements TeamLookup {
     @Transactional
     public CompetitionTeamResponse enrollInCompetition(
             UUID competitionId, UUID teamId, EnrollTeamRequest request, String currentUserEmail) {
+        competitionLookup.assertExists(competitionId);
+        competitionLookup.assertManagedBy(competitionId, currentUserEmail);
         TeamEntity team = findEntityById(teamId);
-
-        if (request != null && request.divisionId() != null) {
-            divisionLookup.assertExists(request.divisionId());
-            UUID divisionCompetition = divisionLookup.findCompetitionId(request.divisionId());
-            if (!divisionCompetition.equals(competitionId)) {
-                throw new DivisionCompetitionMismatchException();
-            }
-        }
 
         if (competitionTeamRepository.existsByCompetitionIdAndTeamId(competitionId, teamId)) {
             throw new IllegalArgumentException("Time já inscrito nesta competição");
@@ -118,15 +113,81 @@ public class TeamService implements TeamLookup {
         CompetitionTeamEntity entity = new CompetitionTeamEntity();
         entity.setCompetitionId(competitionId);
         entity.setTeamId(teamId);
-        entity.setDivisionId(request != null ? request.divisionId() : null);
+        if (request != null) {
+            entity.setStatus(request.status() != null ? request.status() : CompetitionTeamStatus.PENDING);
+            entity.setGroupName(request.groupName());
+            entity.setConferenceName(request.conferenceName());
+            entity.setDivisionName(request.divisionName());
+            entity.setSeedNumber(request.seedNumber());
+        } else {
+            entity.setStatus(CompetitionTeamStatus.PENDING);
+        }
 
         CompetitionTeamEntity saved = competitionTeamRepository.save(entity);
-
-        return toCompetitionTeamResponse(saved);
+        return toCompetitionTeamResponse(saved, team);
     }
 
     @Transactional
-    public void removeFromCompetition(UUID competitionId, UUID teamId) {
+    public CompetitionTeamResponse updateAllocation(
+            UUID competitionId, UUID teamId, UpdateCompetitionTeamRequest request, String currentUserEmail) {
+        competitionLookup.assertExists(competitionId);
+        competitionLookup.assertManagedBy(competitionId, currentUserEmail);
+        TeamEntity team = findEntityById(teamId);
+
+        CompetitionTeamEntity entity = competitionTeamRepository
+                .findByCompetitionIdAndTeamId(competitionId, teamId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Inscrição do time " + teamId + " na competição " + competitionId + " não encontrada"));
+
+        if (request.status() != null) {
+            entity.setStatus(request.status());
+        }
+        entity.setGroupName(request.groupName());
+        entity.setConferenceName(request.conferenceName());
+        entity.setDivisionName(request.divisionName());
+        entity.setSeedNumber(request.seedNumber());
+
+        CompetitionTeamEntity saved = competitionTeamRepository.save(entity);
+        return toCompetitionTeamResponse(saved, team);
+    }
+
+    @Transactional
+    public CompetitionTeamResponse approveTeam(UUID competitionId, UUID teamId, String currentUserEmail) {
+        competitionLookup.assertExists(competitionId);
+        competitionLookup.assertManagedBy(competitionId, currentUserEmail);
+        TeamEntity team = findEntityById(teamId);
+
+        CompetitionTeamEntity entity = competitionTeamRepository
+                .findByCompetitionIdAndTeamId(competitionId, teamId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Inscrição do time " + teamId + " na competição " + competitionId + " não encontrada"));
+
+        entity.setStatus(CompetitionTeamStatus.APPROVED);
+        CompetitionTeamEntity saved = competitionTeamRepository.save(entity);
+        return toCompetitionTeamResponse(saved, team);
+    }
+
+    @Transactional
+    public CompetitionTeamResponse rejectTeam(UUID competitionId, UUID teamId, String currentUserEmail) {
+        competitionLookup.assertExists(competitionId);
+        competitionLookup.assertManagedBy(competitionId, currentUserEmail);
+        TeamEntity team = findEntityById(teamId);
+
+        CompetitionTeamEntity entity = competitionTeamRepository
+                .findByCompetitionIdAndTeamId(competitionId, teamId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Inscrição do time " + teamId + " na competição " + competitionId + " não encontrada"));
+
+        entity.setStatus(CompetitionTeamStatus.REJECTED);
+        CompetitionTeamEntity saved = competitionTeamRepository.save(entity);
+        return toCompetitionTeamResponse(saved, team);
+    }
+
+    @Transactional
+    public void removeFromCompetition(UUID competitionId, UUID teamId, String currentUserEmail) {
+        competitionLookup.assertExists(competitionId);
+        competitionLookup.assertManagedBy(competitionId, currentUserEmail);
+
         CompetitionTeamEntity entity = competitionTeamRepository
                 .findByCompetitionIdAndTeamId(competitionId, teamId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -151,7 +212,13 @@ public class TeamService implements TeamLookup {
 
     private CompetitionTeamResponse toCompetitionTeamResponse(CompetitionTeamEntity ct) {
         TeamEntity team = teamRepository.findById(ct.getTeamId()).orElse(null);
+        return toCompetitionTeamResponse(ct, team);
+    }
+
+    private CompetitionTeamResponse toCompetitionTeamResponse(CompetitionTeamEntity ct, TeamEntity team) {
         String teamName = team != null ? team.getName() : "Desconhecido";
+        String teamShortName = team != null ? team.getShortName() : null;
+        String teamLogoUrl = team != null ? team.getLogoUrl() : null;
         UUID organizationId = team != null ? team.getOrganizationId() : null;
         String organizationName = organizationId != null
                 ? organizationLookup.findTradeNameById(organizationId)
@@ -161,10 +228,17 @@ public class TeamService implements TeamLookup {
                 ct.getCompetitionId(),
                 ct.getTeamId(),
                 teamName,
+                teamShortName,
+                teamLogoUrl,
                 organizationId,
                 organizationName,
-                ct.getDivisionId(),
-                ct.getCreatedAt());
+                ct.getStatus(),
+                ct.getGroupName(),
+                ct.getConferenceName(),
+                ct.getDivisionName(),
+                ct.getSeedNumber(),
+                ct.getCreatedAt(),
+                ct.getUpdatedAt());
     }
 
     /**

@@ -14,7 +14,7 @@ public final class CurrentUser {
 
     public static boolean isAdmin(Authentication authentication) {
         return authentication != null && authentication.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_ADMIN_LIGA".equals(a.getAuthority()));
     }
 
 }

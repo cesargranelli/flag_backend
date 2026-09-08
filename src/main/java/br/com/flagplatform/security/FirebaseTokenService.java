@@ -50,7 +50,7 @@ public class FirebaseTokenService {
                         decoded.getClaims()
                 ));
             } catch (Exception ex) {
-                log.debug("Falha na validacao Firebase ID Token: {}", ex.getMessage());
+                log.warn("Falha na validacao remota Firebase ID Token ({}), usando parseDevFallbackToken.", ex.getMessage());
             }
         }
 

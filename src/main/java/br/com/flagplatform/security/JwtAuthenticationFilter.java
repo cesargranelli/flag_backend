@@ -42,21 +42,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
-                firebaseTokenService.verifyToken(token)
-                        .ifPresent(firebaseUser -> {
-                            UserEntity user = authService.getOrProvisionFirebaseUser(firebaseUser);
-                            if (user != null) {
-                                UserPrincipal principal = new UserPrincipal(user);
-                                UsernamePasswordAuthenticationToken authentication =
-                                        new UsernamePasswordAuthenticationToken(
-                                                principal, null, principal.getAuthorities());
-                                authentication.setDetails(
-                                        new WebAuthenticationDetailsSource().buildDetails(request));
-                                SecurityContextHolder.getContext().setAuthentication(authentication);
-                            }
-                        });
+                var maybeUser = firebaseTokenService.verifyToken(token);
+                if (maybeUser.isEmpty()) {
+                    log.warn("Token recebido não pôde ser decodificado pelo FirebaseTokenService (verifyToken retornou vazio)");
+                } else {
+                    FirebaseUserInfo firebaseUser = maybeUser.get();
+                    UserEntity user = authService.getOrProvisionFirebaseUser(firebaseUser);
+                    if (user != null) {
+                        UserPrincipal principal = new UserPrincipal(user);
+                        log.info("Autenticado com sucesso: email={}, role={}, status={}, authorities={}",
+                                user.getEmail(), user.getRole(), user.getStatus(), principal.getAuthorities());
+                        UsernamePasswordAuthenticationToken authentication =
+                                new UsernamePasswordAuthenticationToken(
+                                        principal, null, principal.getAuthorities());
+                        authentication.setDetails(
+                                new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    } else {
+                        log.warn("authService.getOrProvisionFirebaseUser retornou null para uid={}, email={}",
+                                firebaseUser.uid(), firebaseUser.email());
+                    }
+                }
             } catch (Exception ex) {
-                log.warn("Erro ao autenticar usuário com Firebase ID Token: {}", ex.getMessage());
+                log.warn("Erro ao autenticar usuário com Firebase ID Token: {}", ex.getMessage(), ex);
             }
         }
 

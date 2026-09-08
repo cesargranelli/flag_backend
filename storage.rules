@@ -19,11 +19,10 @@ service firebase.storage {
     }
 
     // Teams logos
-    match /teams/{teamId}/{allPaths=**} {
+    match /teams/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null
-                   && request.auth.token.role in ['ADMIN', 'ORGANIZER']
-                   && request.resource.size < 2 * 1024 * 1024
+                   && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
 
