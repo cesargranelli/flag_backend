@@ -154,6 +154,84 @@ public class RosterService implements RosterLookup {
         rosterEntryRepository.delete(entity);
     }
 
+    // -----------------------------------------------------------------------
+    // Elenco-base do time (sem competição associada)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Retorna ou cria o elenco-base permanente de um time (competition_id IS NULL).
+     */
+    private RosterEntity getOrCreateBaseRoster(UUID teamId) {
+        return rosterRepository.findByTeamIdAndCompetitionIdIsNull(teamId)
+                .orElseGet(() -> {
+                    RosterEntity roster = new RosterEntity();
+                    roster.setTeamId(teamId);
+                    roster.setCompetitionId(null);
+                    roster.setStatus(RosterStatus.ACTIVE);
+                    roster.setSeason("BASE");
+                    return rosterRepository.save(roster);
+                });
+    }
+
+    /**
+     * Lista os atletas do elenco-base de um time.
+     */
+    public List<RosterEntryResponse> findBaseRoster(UUID teamId) {
+        teamLookup.assertExists(teamId);
+
+        return rosterRepository.findByTeamIdAndCompetitionIdIsNull(teamId)
+                .map(roster -> rosterEntryRepository
+                        .findAllByRosterIdOrderByCreatedAtAsc(roster.getId())
+                        .stream()
+                        .map(this::toResponse)
+                        .sorted(Comparator
+                                .comparing(RosterEntryResponse::number,
+                                        Comparator.nullsLast(Integer::compareTo))
+                                .thenComparing(RosterEntryResponse::athleteName,
+                                        String.CASE_INSENSITIVE_ORDER))
+                        .toList())
+                .orElse(List.of());
+    }
+
+    /**
+     * Adiciona um atleta ao elenco-base do time (criando o elenco-base se ainda não existir).
+     */
+    @Transactional
+    public RosterEntryResponse addToBaseRoster(UUID teamId, AddRosterEntryRequest request, String currentUserEmail) {
+        assertTeamManagedBy(teamId, currentUserEmail);
+        athleteLookup.assertExists(request.athleteId());
+
+        RosterEntity roster = getOrCreateBaseRoster(teamId);
+
+        if (rosterEntryRepository.existsByRosterIdAndAthleteId(roster.getId(), request.athleteId())) {
+            throw new DuplicateRosterEntryException();
+        }
+
+        RosterEntryEntity entity = mapper.toEntity(request);
+        entity.setRosterId(roster.getId());
+        if (entity.getStatus() == null) {
+            entity.setStatus(RosterStatus.ACTIVE);
+        }
+
+        return toResponse(rosterEntryRepository.save(entity));
+    }
+
+    /**
+     * Remove um atleta do elenco-base do time.
+     */
+    @Transactional
+    public void removeFromBaseRoster(UUID teamId, UUID athleteId, String currentUserEmail) {
+        assertTeamManagedBy(teamId, currentUserEmail);
+
+        RosterEntity roster = rosterRepository.findByTeamIdAndCompetitionIdIsNull(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("Elenco base não encontrado para o time"));
+
+        RosterEntryEntity entity = rosterEntryRepository.findByRosterIdAndAthleteId(roster.getId(), athleteId)
+                .orElseThrow(() -> new RosterEntryNotFoundException(teamId, athleteId));
+
+        rosterEntryRepository.delete(entity);
+    }
+
     @Transactional
     public void deactivate(UUID teamId, UUID competitionId, String currentUserEmail) {
         assertTeamManagedBy(teamId, currentUserEmail);
