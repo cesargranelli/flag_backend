@@ -246,6 +246,10 @@ public class TeamService implements TeamLookup {
         String organizationName = organizationId != null
                 ? organizationLookup.findTradeNameById(organizationId)
                 : null;
+        UUID clubId = team != null ? team.getClubId() : null;
+        String clubName = clubId != null
+                ? institutionLookup.findTradeNameById(clubId)
+                : null;
         return new CompetitionTeamResponse(
                 ct.getId(),
                 ct.getCompetitionId(),
@@ -255,6 +259,8 @@ public class TeamService implements TeamLookup {
                 teamLogoUrl,
                 organizationId,
                 organizationName,
+                clubId,
+                clubName,
                 ct.getStatus(),
                 ct.getGroupName(),
                 ct.getConferenceName(),
