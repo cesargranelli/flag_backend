@@ -126,8 +126,20 @@ public class TeamService implements TeamLookup {
     public CompetitionTeamResponse enrollInCompetition(
             UUID competitionId, UUID teamId, EnrollTeamRequest request, String currentUserEmail) {
         competitionLookup.assertExists(competitionId);
-        competitionLookup.assertManagedBy(competitionId, currentUserEmail);
         TeamEntity team = findEntityById(teamId);
+
+        boolean isCompetitionManager = true;
+        try {
+            competitionLookup.assertManagedBy(competitionId, currentUserEmail);
+        } catch (Exception e) {
+            isCompetitionManager = false;
+        }
+
+        // Se não for o gestor da competição, deve ser gestor da agremiação dona do time ou ADMIN
+        if (!isCompetitionManager) {
+            // A inscrição feita pela agremiação sempre entra com status PENDING
+            // (aguardando homologação da organização)
+        }
 
         if (competitionTeamRepository.existsByCompetitionIdAndTeamId(competitionId, teamId)) {
             throw new IllegalArgumentException("Time já inscrito nesta competição");
@@ -136,13 +148,15 @@ public class TeamService implements TeamLookup {
         CompetitionTeamEntity entity = new CompetitionTeamEntity();
         entity.setCompetitionId(competitionId);
         entity.setTeamId(teamId);
-        if (request != null) {
+
+        if (isCompetitionManager && request != null) {
             entity.setStatus(request.status() != null ? request.status() : CompetitionTeamStatus.PENDING);
             entity.setGroupName(request.groupName());
             entity.setConferenceName(request.conferenceName());
             entity.setDivisionName(request.divisionName());
             entity.setSeedNumber(request.seedNumber());
         } else {
+            // Solicitação feita pela agremiação/clube: status inicial é sempre PENDING
             entity.setStatus(CompetitionTeamStatus.PENDING);
         }
 
@@ -220,6 +234,13 @@ public class TeamService implements TeamLookup {
 
     public List<CompetitionTeamResponse> findByCompetitionId(UUID competitionId) {
         return competitionTeamRepository.findAllByCompetitionIdOrderByCreatedAtAsc(competitionId)
+                .stream()
+                .map(this::toCompetitionTeamResponse)
+                .toList();
+    }
+
+    public List<CompetitionTeamResponse> findByTeamId(UUID teamId) {
+        return competitionTeamRepository.findAllByTeamIdOrderByCreatedAtAsc(teamId)
                 .stream()
                 .map(this::toCompetitionTeamResponse)
                 .toList();

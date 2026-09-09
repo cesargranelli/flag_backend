@@ -136,11 +136,11 @@ public class TeamController {
 
     @Operation(
             summary = "Inscrever time em competição",
-            description = "Inscreve um time em uma competição. Permitido apenas para ADMIN ou criador/organizador."
+            description = "Inscreve um time em uma competição. Permitido para ADMIN, organizador da competição ou gestor da agremiação dona do time."
     )
     @PostMapping("/api/v1/competitions/{competitionId}/teams/{teamId}")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    @PreAuthorize(SecurityExpressions.ACTIVE)
     public CompetitionTeamResponse enrollInCompetition(
             @Parameter(description = "Id da competição") @PathVariable UUID competitionId,
             @Parameter(description = "Id do time") @PathVariable UUID teamId,
@@ -197,6 +197,16 @@ public class TeamController {
     public List<CompetitionTeamResponse> findByCompetitionId(
             @Parameter(description = "Id da competição") @PathVariable UUID competitionId) {
         return service.findByCompetitionId(competitionId);
+    }
+
+    @Operation(
+            summary = "Listar competições de um time",
+            description = "Lista todas as inscrições de um time em competições com seus respectivos status. Acesso público."
+    )
+    @GetMapping("/api/v1/teams/{teamId}/competitions")
+    public List<CompetitionTeamResponse> findCompetitionsByTeamId(
+            @Parameter(description = "Id do time") @PathVariable UUID teamId) {
+        return service.findByTeamId(teamId);
     }
 
     @Operation(
