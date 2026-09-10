@@ -17,6 +17,7 @@ import br.com.flagplatform.competition.exception.CompetitionNotOwnedByCreatorExc
 import br.com.flagplatform.competition.exception.DuplicateCompetitionNameException;
 import br.com.flagplatform.competition.mapper.CompetitionMapper;
 import br.com.flagplatform.competition.repository.CompetitionRepository;
+import br.com.flagplatform.competition.repository.CompetitionEnrollmentWindowRepository;
 import br.com.flagplatform.competition.CompetitionCreatedEvent;
 import br.com.flagplatform.organization.OrganizationLookup;
 import br.com.flagplatform.user.UserLookup;
@@ -41,6 +42,7 @@ public class CompetitionService implements CompetitionLookup {
 
     private final CompetitionMapper mapper;
     private final CompetitionRepository repository;
+    private final CompetitionEnrollmentWindowRepository windowRepository;
     private final OrganizationLookup organizationLookup;
     private final UserLookup userLookup;
     private final ApplicationEventPublisher events;
@@ -205,6 +207,13 @@ public class CompetitionService implements CompetitionLookup {
         return repository.findAllById(ids).stream()
                 .map(entity -> new CompetitionInfo(entity.getId(), entity.getName(), entity.getModality(), entity.getGender()))
                 .collect(Collectors.toMap(CompetitionInfo::id, info -> info));
+    }
+
+    @Override
+    public boolean isEnrollmentWindowOpen(UUID competitionId) {
+        return windowRepository.findByCompetitionId(competitionId)
+                .filter(br.com.flagplatform.competition.entity.CompetitionEnrollmentWindowEntity::isOpen)
+                .isPresent();
     }
 
     private CompetitionEntity findEntityById(UUID id) {

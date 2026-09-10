@@ -35,8 +35,14 @@ public interface CompetitionLookup {
 
     /**
      * Retorna projeções p&uacute;blicas de v&aacute;rios campeonatos em lote,
-     * indexadas por id. Útil para queries que resolvem v&aacute;rios competitionIds
+     * indexadas por id. &Uacute;til para queries que resolvem v&aacute;rios competitionIds
      * sem N+1.
      */
     java.util.Map<UUID, CompetitionInfo> findCompetitionInfoByIds(java.util.Collection<UUID> ids);
+
+    /**
+     * Verifica se a janela de inscrição de equipes de uma competição está aberta.
+     * Retorna {@code true} se existir janela com status OPEN e data atual dentro do intervalo.
+     */
+    boolean isEnrollmentWindowOpen(UUID competitionId);
 }

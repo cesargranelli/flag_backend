@@ -1,7 +1,7 @@
 package br.com.flagplatform.roster.service;
 
-import br.com.flagplatform.athlete.AthleteInfo;
-import br.com.flagplatform.athlete.AthleteLookup;
+import br.com.flagplatform.person.PersonInfo;
+import br.com.flagplatform.person.PersonLookup;
 import br.com.flagplatform.common.enums.RosterStatus;
 import br.com.flagplatform.competition.CompetitionLookup;
 import br.com.flagplatform.roster.RosterLookup;
@@ -38,7 +38,7 @@ public class RosterService implements RosterLookup {
     private final RosterEntryRepository rosterEntryRepository;
     private final RosterRepository rosterRepository;
     private final TeamLookup teamLookup;
-    private final AthleteLookup athleteLookup;
+    private final PersonLookup personLookup;
     private final CompetitionLookup competitionLookup;
 
     /**
@@ -59,7 +59,7 @@ public class RosterService implements RosterLookup {
     @Transactional
     public RosterEntryResponse add(UUID teamId, UUID competitionId, AddRosterEntryRequest request, String currentUserEmail) {
         assertTeamManagedBy(teamId, currentUserEmail);
-        athleteLookup.assertExists(request.athleteId());
+        personLookup.assertExists(request.athleteId());
 
         RosterEntity roster = getOrCreateRoster(teamId, competitionId, currentUserEmail);
 
@@ -92,7 +92,7 @@ public class RosterService implements RosterLookup {
         for (int i = 0; i < request.athletes().size(); i++) {
             RosterBatchItem item = request.athletes().get(i);
             int line = i + 2; // linha 1 = cabecalho
-            if (!athleteLookup.existsById(item.athleteId())) {
+            if (!personLookup.existsById(item.athleteId())) {
                 lines.add(new RosterBatchLineResult(
                         line, "INVALID", "Atleta não encontrado", item));
                 continue;
@@ -199,7 +199,7 @@ public class RosterService implements RosterLookup {
     @Transactional
     public RosterEntryResponse addToBaseRoster(UUID teamId, AddRosterEntryRequest request, String currentUserEmail) {
         assertTeamManagedBy(teamId, currentUserEmail);
-        athleteLookup.assertExists(request.athleteId());
+        personLookup.assertExists(request.athleteId());
 
         RosterEntity roster = getOrCreateBaseRoster(teamId);
 
@@ -274,18 +274,17 @@ public class RosterService implements RosterLookup {
     }
 
     private RosterEntryResponse toResponse(RosterEntryEntity entity) {
-        AthleteInfo athlete = athleteLookup.findAthleteInfoById(entity.getAthleteId());
+        PersonInfo person = personLookup.findPersonInfoById(entity.getAthleteId());
 
         return new RosterEntryResponse(
                 entity.getId(),
                 entity.getRosterId(),
                 entity.getAthleteId(),
-                athlete.name(),
-                athlete.nickname(),
+                person.name(),
                 entity.getNickname(),
-                athlete.position(),
+                entity.getPositions(),
                 entity.getNumber(),
-                athlete.photoUrl(),
+                person.photoUrl(),
                 entity.getStatus(),
                 entity.getCreatedAt());
     }
