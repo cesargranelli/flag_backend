@@ -264,8 +264,6 @@ public class TeamService implements TeamLookup {
                 teamName,
                 teamShortName,
                 teamLogoUrl,
-                null,
-                clubName,
                 clubId,
                 clubName,
                 ct.getStatus(),
@@ -284,8 +282,6 @@ public class TeamService implements TeamLookup {
                 : null;
         return new TeamResponse(
                 base.id(),
-                null,
-                null,
                 entity.getClubId(),
                 clubName,
                 base.name(),

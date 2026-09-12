@@ -22,8 +22,6 @@ public interface TeamMapper {
             @MappingTarget TeamEntity entity,
             UpdateTeamRequest request);
 
-    @Mapping(target = "organizationId", ignore = true)
-    @Mapping(target = "organizationName", ignore = true)
     @Mapping(target = "clubName", ignore = true)
     TeamResponse toResponse(TeamEntity entity);
 
