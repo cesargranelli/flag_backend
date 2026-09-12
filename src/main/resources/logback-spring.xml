@@ -8,19 +8,14 @@
     <property name="LOG_PATTERN" value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"/>
     <property name="LOG_FILE" value="logs/flag_backend.log"/>
 
-    <!-- JSON Encoder for structured logging -->
-    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <includeContext>true</includeContext>
-            <includeMdc>true</includeMdc>
-            <includeCallerData>false</includeCallerData>
-            <customFields>{"service":"flag-backend","application":"flag_platform"}</customFields>
-            <timestampFormat>yyyy-MM-dd'T'HH:mm:ss.SSSXXX</timestampFormat>
-            <timestampFormatTimezoneId>UTC</timestampFormatTimezoneId>
+    <!-- Console Appender with readable pattern (default) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
         </encoder>
     </appender>
 
-    <!-- JSON File Appender -->
+    <!-- JSON File Appender for structured logging -->
     <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_FILE}</file>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
@@ -39,22 +34,6 @@
         </rollingPolicy>
     </appender>
 
-    <!-- Micrometer Tracing appender - captures trace/span context -->
-    <appender name="TRACE_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <includeContext>true</includeContext>
-            <includeMdc>true</includeMdc>
-            <customFields>{"service":"flag-backend"}</customFields>
-        </encoder>
-    </appender>
-
-    <!-- Spring Boot default console appender for startup logs -->
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>${LOG_PATTERN}</pattern>
-        </encoder>
-    </appender>
-
     <!-- Logger levels -->
     <logger name="br.com.flagplatform" level="INFO"/>
     <logger name="org.springframework.security" level="WARN"/>
@@ -62,9 +41,9 @@
     <logger name="io.micrometer" level="WARN"/>
     <logger name="com.zaxxer.hikari" level="WARN"/>
 
-    <!-- Root logger uses JSON output -->
+    <!-- Root logger: console (readable) + file (JSON) -->
     <root level="INFO">
-        <appender-ref ref="JSON_CONSOLE"/>
+        <appender-ref ref="CONSOLE"/>
         <appender-ref ref="JSON_FILE"/>
     </root>
 
