@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public record UpdateTeamRequest(
         @NotNull
-        UUID organizationId,
+        UUID clubId,
 
         @NotBlank
         @Size(max = 255)

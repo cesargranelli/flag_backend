@@ -12,8 +12,6 @@ public record CompetitionTeamResponse(
         String teamName,
         String teamShortName,
         String teamLogoUrl,
-        UUID organizationId,
-        String organizationName,
         UUID clubId,
         String clubName,
         CompetitionTeamStatus status,

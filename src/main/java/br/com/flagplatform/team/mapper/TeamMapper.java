@@ -1,6 +1,5 @@
 package br.com.flagplatform.team.mapper;
 
-import br.com.flagplatform.organization.OrganizationLookup;
 import br.com.flagplatform.team.dto.request.CreateTeamRequest;
 import br.com.flagplatform.team.dto.request.UpdateTeamRequest;
 import br.com.flagplatform.team.dto.response.TeamResponse;
@@ -23,6 +22,7 @@ public interface TeamMapper {
             @MappingTarget TeamEntity entity,
             UpdateTeamRequest request);
 
+    @Mapping(target = "organizationId", ignore = true)
     @Mapping(target = "organizationName", ignore = true)
     @Mapping(target = "clubName", ignore = true)
     TeamResponse toResponse(TeamEntity entity);

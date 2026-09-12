@@ -16,9 +16,6 @@ import java.util.UUID;
 @Table(name = "team")
 public class TeamEntity extends BaseEntity {
 
-    @Column(name = "organization_id")
-    private UUID organizationId;
-
     @Column(name = "club_id")
     private UUID clubId;
 

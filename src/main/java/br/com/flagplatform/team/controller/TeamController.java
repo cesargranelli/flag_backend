@@ -41,26 +41,26 @@ public class TeamController {
             summary = "Criar time",
             description = "Cria um time dentro de um clube (organização). Permitido apenas para ADMIN ou ORGANIZER."
     )
-    @PostMapping("/api/v1/organizations/{organizationId}/teams")
+@PostMapping("/api/v1/institutions/{clubId}/teams")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
     public TeamResponse create(
-            @Parameter(description = "Id da organização (clube)") @PathVariable UUID organizationId,
+            @Parameter(description = "Id do clube (agremiação)") @PathVariable UUID clubId,
             @Valid @RequestBody CreateTeamRequest request,
             Authentication authentication) {
-        return service.create(organizationId, request, authentication.getName());
+        return service.create(clubId, request, authentication.getName());
     }
 
 
 
-    @Operation(
+@Operation(
             summary = "Listar times de um clube",
-            description = "Lista os times de uma organização (clube), ordenados por nome. Acesso público."
+            description = "Lista os times de um clube (agremiação), ordenados por nome. Acesso público."
     )
-    @GetMapping("/api/v1/organizations/{organizationId}/teams")
-    public List<TeamResponse> findByOrganizationId(
-            @Parameter(description = "Id da organização") @PathVariable UUID organizationId) {
-        return service.findByOrganizationId(organizationId);
+    @GetMapping("/api/v1/institutions/{clubId}/teams")
+    public List<TeamResponse> findByClubId(
+            @Parameter(description = "Id do clube") @PathVariable UUID clubId) {
+        return service.findByOrganizationId(clubId);
     }
 
     @Operation(
