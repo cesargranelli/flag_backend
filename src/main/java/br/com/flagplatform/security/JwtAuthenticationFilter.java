@@ -25,13 +25,16 @@ import java.io.IOException;
  * requisições autenticadas. O filtro valida o token via {@link FirebaseTokenService},
  * busca/provisiona o usuário no PostgreSQL e configura o contexto de segurança.
  * <p>
- * Utiliza logs estruturados JSON via LogstashEncoder para rastreamento de
- * requisição/resposta.
+ * Registra logs estruturados JSON de requisição/resposta apenas para endpoints
+ * de controllers (caminhos iniciados com "/api/v1/"), excluindo health checks,
+ * actuator endpoints, swagger-ui e outros caminhos internos.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final String API_V1_PREFIX = "/api/v1/";
 
     private final FirebaseTokenService firebaseTokenService;
     private final AuthService authService;
@@ -42,11 +45,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
 
-        // Log estruturado da requisição
-        log.info("request.method={} request.uri={} request.remote_addr={}",
-                request.getMethod(),
-                request.getRequestURI(),
-                request.getRemoteAddr());
+        // Log estruturado apenas para endpoints de controllers
+        boolean isControllerEndpoint = request.getRequestURI().startsWith(API_V1_PREFIX);
+
+        if (isControllerEndpoint) {
+            log.info("request.method={} request.uri={} request.remote_addr={}",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    request.getRemoteAddr());
+        }
 
         String token = resolveToken(request);
 
@@ -77,13 +84,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
-        // Log estruturado da resposta
+        // Log estruturado da resposta apenas para endpoints de controllers
         ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
         filterChain.doFilter(request, wrappedResponse);
-        int status = wrappedResponse.getStatus();
-        log.info("response.status={} response.content_type={}",
-                status,
-                wrappedResponse.getContentType());
+
+        if (isControllerEndpoint) {
+            int status = wrappedResponse.getStatus();
+            log.info("response.status={} response.content_type={}",
+                    status,
+                    wrappedResponse.getContentType());
+        }
         wrappedResponse.copyBodyToResponse();
     }
 
