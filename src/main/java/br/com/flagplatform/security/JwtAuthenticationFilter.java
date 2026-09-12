@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
 
@@ -23,6 +24,9 @@ import java.io.IOException;
  * O frontend (Flutter/Firebase Auth SDK) envia o Firebase ID Token em todas as
  * requisições autenticadas. O filtro valida o token via {@link FirebaseTokenService},
  * busca/provisiona o usuário no PostgreSQL e configura o contexto de segurança.
+ * <p>
+ * Utiliza logs estruturados JSON via LogstashEncoder para rastreamento de
+ * requisição/resposta.
  */
 @Slf4j
 @Component
@@ -38,37 +42,49 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
 
+        // Log estruturado da requisição
+        log.info("request.method={} request.uri={} request.remote_addr={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                request.getRemoteAddr());
+
         String token = resolveToken(request);
 
         if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 var maybeUser = firebaseTokenService.verifyToken(token);
                 if (maybeUser.isEmpty()) {
-                    log.warn("Token recebido não pôde ser decodificado pelo FirebaseTokenService (verifyToken retornou vazio)");
+                    log.warn("token.decoding.failed reason=firebase_verify_returned_empty");
                 } else {
                     FirebaseUserInfo firebaseUser = maybeUser.get();
                     UserEntity user = authService.getOrProvisionFirebaseUser(firebaseUser);
                     if (user != null) {
                         UserPrincipal principal = new UserPrincipal(user);
-                        log.info("Autenticado com sucesso: email={}, role={}, status={}, authorities={}",
-                                user.getEmail(), user.getRole(), user.getStatus(), principal.getAuthorities());
                         UsernamePasswordAuthenticationToken authentication =
                                 new UsernamePasswordAuthenticationToken(
                                         principal, null, principal.getAuthorities());
                         authentication.setDetails(
                                 new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(authentication);
+                        log.debug("authentication.success user_id={} email={}", user.getId(), user.getEmail());
                     } else {
-                        log.warn("authService.getOrProvisionFirebaseUser retornou null para uid={}, email={}",
-                                firebaseUser.uid(), firebaseUser.email());
+                        log.warn("authService.getOrProvisionFirebaseUser returned null uid={}",
+                                firebaseUser.uid());
                     }
                 }
             } catch (Exception ex) {
-                log.warn("Erro ao autenticar usuário com Firebase ID Token: {}", ex.getMessage(), ex);
+                log.warn("authentication.error reason={}", ex.getMessage(), ex);
             }
         }
 
-        filterChain.doFilter(request, response);
+        // Log estruturado da resposta
+        ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
+        filterChain.doFilter(request, wrappedResponse);
+        int status = wrappedResponse.getStatus();
+        log.info("response.status={} response.content_type={}",
+                status,
+                wrappedResponse.getContentType());
+        wrappedResponse.copyBodyToResponse();
     }
 
     private String resolveToken(HttpServletRequest request) {

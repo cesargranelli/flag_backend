@@ -7,6 +7,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Entity
@@ -21,4 +23,7 @@ public class VenueEntity extends BaseEntity {
 
     @Column(name = "maps_url", length = 500)
     private String mapsUrl;
+
+    @Column(name = "organization_id")
+    private UUID organizationId;
 }

@@ -4,10 +4,7 @@ import br.com.flagplatform.venue.dto.request.CreateVenueRequest;
 import br.com.flagplatform.venue.dto.request.UpdateVenueRequest;
 import br.com.flagplatform.venue.dto.response.VenueResponse;
 import br.com.flagplatform.venue.entity.VenueEntity;
-import org.mapstruct.BeanMapping;
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.*;
 
 import java.util.List;
 
@@ -21,6 +18,7 @@ public interface VenueMapper {
             @MappingTarget VenueEntity entity,
             UpdateVenueRequest request);
 
+    @Mapping(source = "organizationId", target = "organizationId")
     VenueResponse toResponse(VenueEntity entity);
 
     List<VenueResponse> toResponseList(List<VenueEntity> entities);
