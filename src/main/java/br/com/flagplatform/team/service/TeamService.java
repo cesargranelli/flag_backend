@@ -126,6 +126,13 @@ public class TeamService implements TeamLookup {
     public CompetitionTeamResponse enrollInCompetition(
             UUID competitionId, UUID teamId, EnrollTeamRequest request, String currentUserEmail) {
         competitionLookup.assertExists(competitionId);
+
+        // Validação: janela de inscrição deve estar aberta
+        if (!competitionLookup.isEnrollmentWindowOpen(competitionId)) {
+            throw new IllegalStateException(
+                    "A janela de inscrição de equipes para esta competição está encerrada ou não foi aberta.");
+        }
+
         TeamEntity team = findEntityById(teamId);
 
         boolean isCompetitionManager = true;

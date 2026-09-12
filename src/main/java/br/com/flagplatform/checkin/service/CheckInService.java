@@ -1,7 +1,7 @@
 package br.com.flagplatform.checkin.service;
 
-import br.com.flagplatform.athlete.AthleteInfo;
-import br.com.flagplatform.athlete.AthleteLookup;
+import br.com.flagplatform.person.PersonInfo;
+import br.com.flagplatform.person.PersonLookup;
 import br.com.flagplatform.checkin.dto.request.CheckInStatusRequest;
 import br.com.flagplatform.checkin.dto.request.MatchNumberRequest;
 import br.com.flagplatform.checkin.dto.response.CheckInResponse;
@@ -38,7 +38,7 @@ public class CheckInService {
     private final CheckInRepository repository;
     private final GameLookup gameLookup;
     private final RosterLookup rosterLookup;
-    private final AthleteLookup athleteLookup;
+    private final PersonLookup personLookup;
     private final TeamLookup teamLookup;
     private final UserLookup userLookup;
 
@@ -87,7 +87,7 @@ public class CheckInService {
 
         return rosterLookup.findAthleteIdsByTeamId(teamId).stream()
                 .map(athleteId -> buildResponse(game.id(), teamId, athleteId, existing.get(athleteId)))
-                .sorted(Comparator.comparing(CheckInResponse::number,
+                .sorted(Comparator.comparing(CheckInResponse::matchNumber,
                         Comparator.nullsLast(Integer::compareTo)))
                 .toList();
     }
@@ -105,22 +105,15 @@ public class CheckInService {
     private CheckInResponse buildResponse(UUID gameId, UUID teamId, UUID athleteId,
                                           CheckInEntity checkIn) {
         String teamName = teamLookup.findTeamInfoById(teamId).name();
-        AthleteInfo athlete = athleteLookup.findAthleteInfoById(athleteId);
-
-        Integer matchNumber = checkIn != null ? checkIn.getMatchNumber() : null;
-        Integer effectiveNumber = matchNumber != null ? matchNumber : athlete.number();
+        PersonInfo person = personLookup.findPersonInfoById(athleteId);
 
         return new CheckInResponse(
                 gameId,
                 teamId,
                 teamName,
                 athleteId,
-                athlete.name(),
-                athlete.nickname(),
-                effectiveNumber,
-                athlete.number(),
-                matchNumber,
-                athlete.position(),
+                person.name(),
+                checkIn != null ? checkIn.getMatchNumber() : null,
                 checkIn != null ? checkIn.getStatus() : null,
                 checkIn != null ? checkIn.getValidatedBy() : null,
                 checkIn != null ? checkIn.getValidatedAt() : null);
@@ -166,7 +159,7 @@ public class CheckInService {
         GameInfo game = gameLookup.findGameInfoById(gameId);
         requireOpen(game);
 
-        AthleteInfo athlete = athleteLookup.findAthleteInfoById(athleteId);
+        PersonInfo person = personLookup.findPersonInfoById(athleteId);
 
         UUID teamId = findTeamOf(game, athleteId);
         if (teamId == null) {
@@ -174,7 +167,7 @@ public class CheckInService {
                     gameId,
                     null,
                     athleteId,
-                    athlete.name(),
+                    person.name(),
                     CheckInStatus.NOT_REGISTERED,
                     null,
                     null);
@@ -201,7 +194,7 @@ public class CheckInService {
                 gameId,
                 saved.getTeamId(),
                 athleteId,
-                athlete.name(),
+                person.name(),
                 saved.getStatus(),
                 saved.getValidatedBy(),
                 saved.getValidatedAt());

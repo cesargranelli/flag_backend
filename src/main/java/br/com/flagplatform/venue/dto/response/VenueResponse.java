@@ -9,6 +9,7 @@ public record VenueResponse(
         String address,
         String mapsUrl,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        UUID organizationId
 ) {
 }

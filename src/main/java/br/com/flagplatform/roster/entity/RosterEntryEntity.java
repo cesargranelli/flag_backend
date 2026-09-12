@@ -37,5 +37,8 @@ public class RosterEntryEntity extends BaseEntity {
     @Column(length = 100)
     private String nickname;
 
+    @Column(name = "positions", length = 255)
+    private String positions;
+
     private Integer number;
 }
