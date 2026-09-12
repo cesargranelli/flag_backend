@@ -1,7 +1,6 @@
 package br.com.flagplatform.institution.controller;
 
 import br.com.flagplatform.common.security.SecurityExpressions;
-import br.com.flagplatform.team.controller.TeamController;
 import br.com.flagplatform.team.dto.request.CreateTeamRequest;
 import br.com.flagplatform.team.dto.response.TeamResponse;
 import br.com.flagplatform.team.service.TeamService;

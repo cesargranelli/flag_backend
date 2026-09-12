@@ -1,7 +1,6 @@
 package br.com.flagplatform.team.controller;
 
 import br.com.flagplatform.common.security.SecurityExpressions;
-import br.com.flagplatform.team.dto.request.CreateTeamRequest;
 import br.com.flagplatform.team.dto.request.EnrollTeamRequest;
 import br.com.flagplatform.team.dto.request.UpdateCompetitionTeamRequest;
 import br.com.flagplatform.team.dto.request.UpdateTeamRequest;
@@ -35,33 +34,7 @@ public class TeamController {
 
     private final TeamService service;
 
-    // --- Team CRUD (sub-entity of Organization) ---
-
-    @Operation(
-            summary = "Criar time",
-            description = "Cria um time dentro de um clube (organização). Permitido apenas para ADMIN ou ORGANIZER."
-    )
-@PostMapping("/api/v1/institutions/{clubId}/teams")
-    @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
-    public TeamResponse create(
-            @Parameter(description = "Id do clube (agremiação)") @PathVariable UUID clubId,
-            @Valid @RequestBody CreateTeamRequest request,
-            Authentication authentication) {
-        return service.create(clubId, request, authentication.getName());
-    }
-
-
-
-@Operation(
-            summary = "Listar times de um clube",
-            description = "Lista os times de um clube (agremiação), ordenados por nome. Acesso público."
-    )
-    @GetMapping("/api/v1/institutions/{clubId}/teams")
-    public List<TeamResponse> findByClubId(
-            @Parameter(description = "Id do clube") @PathVariable UUID clubId) {
-        return service.findByOrganizationId(clubId);
-    }
+// --- Team CRUD (sub-entity of Organization) ---
 
     @Operation(
             summary = "Listar todos os times",
