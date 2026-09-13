@@ -99,4 +99,4 @@ logging:
     org.springframework.security: INFO
     org.flywaydb: INFO
   pattern:
-    console: %d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
