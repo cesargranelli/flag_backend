@@ -8,6 +8,9 @@ target/
 # Uploads
 uploads/
 
+# Logs
+logs/
+
 # Maven
 .mvn/wrapper/maven-wrapper.jar
 
