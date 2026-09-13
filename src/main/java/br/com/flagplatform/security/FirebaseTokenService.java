@@ -16,6 +16,10 @@ import java.util.Optional;
 
 /**
  * Valida Firebase ID Tokens via Firebase Admin SDK.
+ * <p>
+ * Tokens com header {@code alg=none} são tratados como tokens de desenvolvimento
+ * e processados diretamente pelo {@link #parseDevFallbackToken} sem tentativa
+ * de verificação remota, evitando erros de assinatura inválida.
  */
 @Slf4j
 @Service
@@ -40,6 +44,12 @@ public class FirebaseTokenService {
             return Optional.empty();
         }
 
+        // Se o token é um dev token (alg:none), vá direto para o fallback
+        // sem tentar verificação remota que sempre falhará
+        if (isDevToken(token)) {
+            return parseDevFallbackToken(token);
+        }
+
         if (firebaseAuth != null) {
             try {
                 FirebaseToken decoded = firebaseAuth.verifyIdToken(token);
@@ -50,11 +60,25 @@ public class FirebaseTokenService {
                         decoded.getClaims()
                 ));
             } catch (Exception ex) {
-                log.warn("Falha na validacao remota Firebase ID Token ({}), usando parseDevFallbackToken.", ex.getMessage());
+                log.warn("Falha na validacao remota Firebase ID Token ({}).", ex.getMessage());
             }
+        } else {
+            log.debug("FirebaseAuth não configurado, usando parseDevFallbackToken.");
         }
 
         return parseDevFallbackToken(token);
+    }
+
+    private boolean isDevToken(String token) {
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length < 2) return false;
+            String headerJson = new String(Base64.getUrlDecoder().decode(parts[0]));
+            JsonNode header = objectMapper.readTree(headerJson);
+            return "none".equals(header.get("alg").asText());
+        } catch (Exception ex) {
+            return false;
+        }
     }
 
     private Optional<FirebaseUserInfo> parseDevFallbackToken(String token) {
