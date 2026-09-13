@@ -4,8 +4,6 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -34,8 +32,6 @@ import java.util.Set;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestResponseLoggingFilter implements Filter {
 
-    private static final Logger TRACE_LOG = LoggerFactory.getLogger("br.com.flagplatform.security.RequestResponseLoggingFilter");
-
     private static final Set<String> LOGGED_PATHS = Set.of("/api/v1/");
     private static final int MAX_BODY_LENGTH = 500;
 
@@ -63,7 +59,7 @@ public class RequestResponseLoggingFilter implements Filter {
         String requestBody = extractRequestBody(wrappedRequest, method);
         String truncatedBody = formatBody(requestBody);
         MDC.put("request_body", truncatedBody != null ? truncatedBody : "");
-        TRACE_LOG.info("request.start method={} uri={} remote_addr={}",
+        log.info("request.start method={} uri={} remote_addr={}",
                 method, path, httpRequest.getRemoteAddr());
         MDC.remove("request_body");
 
@@ -76,7 +72,7 @@ public class RequestResponseLoggingFilter implements Filter {
             String responseBody = extractResponseBody(wrappedResponse);
             String truncatedRespBody = formatBody(responseBody);
             MDC.put("response_body", truncatedRespBody != null ? truncatedRespBody : "");
-            TRACE_LOG.info("request.end method={} uri={} status={} duration_ms={}",
+            log.info("request.end method={} uri={} status={} duration_ms={}",
                     method, path, status, elapsedMs);
             MDC.remove("response_body");
 

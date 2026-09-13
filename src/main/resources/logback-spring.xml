@@ -22,26 +22,12 @@
         </rollingPolicy>
     </appender>
 
-    <!-- JSON Console Appender with traceId/spanId (for request/response logging) -->
-    <appender name="TRACE_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <customFields>{"service":"flag-backend","application":"flag_platform"}</customFields>
-            <includeContext>true</includeContext>
-            <includeMdc>true</includeMdc>
-        </encoder>
-    </appender>
-
     <!-- Logger levels -->
     <logger name="br.com.flagplatform" level="INFO"/>
     <logger name="org.springframework.security" level="WARN"/>
     <logger name="org.springframework.web" level="INFO"/>
     <logger name="io.micrometer" level="WARN"/>
     <logger name="com.zaxxer.hikari" level="WARN"/>
-
-    <!-- Request/Response logging uses JSON console (traceId/spanId + body) -->
-    <logger name="br.com.flagplatform.security.RequestResponseLoggingFilter" level="INFO" additivity="false">
-        <appender-ref ref="TRACE_CONSOLE"/>
-    </logger>
 
     <!-- Root logger: Spring Boot default console + JSON file -->
     <root level="INFO">
