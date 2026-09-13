@@ -98,7 +98,3 @@ logging:
     br.com.flagplatform: DEBUG
     org.springframework.security: INFO
     org.flywaydb: INFO
-  pattern:
-    console: json
-  exceptions:
-    none: org.springframework.security.access.AccessDeniedException

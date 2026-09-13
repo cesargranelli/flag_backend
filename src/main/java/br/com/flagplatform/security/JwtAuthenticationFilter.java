@@ -14,7 +14,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
 
@@ -41,12 +40,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
-
-        // Log estruturado da requisição
-        log.info("request.method={} request.uri={} request.remote_addr={}",
-                request.getMethod(),
-                request.getRequestURI(),
-                request.getRemoteAddr());
 
         String token = resolveToken(request);
 
@@ -77,14 +70,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
-        // Log estruturado da resposta
-        ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
-        filterChain.doFilter(request, wrappedResponse);
-        int status = wrappedResponse.getStatus();
-        log.info("response.status={} response.content_type={}",
-                status,
-                wrappedResponse.getContentType());
-        wrappedResponse.copyBodyToResponse();
+        filterChain.doFilter(request, response);
     }
 
     private String resolveToken(HttpServletRequest request) {
