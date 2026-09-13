@@ -62,7 +62,6 @@ public class FirebaseTokenService {
             } catch (Exception ex) {
                 // Em dev, credenciais Firebase podem não estar configuradas.
                 // O fallback parseDevFallbackToken trata o token normalmente.
-                log.debug("Firebase verifyIdToken fallback reason={}", ex.getMessage());
             }
         } else {
             log.debug("FirebaseAuth não configurado, usando parseDevFallbackToken.");

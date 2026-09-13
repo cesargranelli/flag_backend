@@ -37,6 +37,16 @@
     <logger name="io.micrometer" level="WARN"/>
     <logger name="com.zaxxer.hikari" level="WARN"/>
 
+    <!-- HTTP access log: request/response JSON lines no console -->
+    <logger name="http.access" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- Auth filter: DEBUG apenas no arquivo JSON, não no console -->
+    <logger name="br.com.flagplatform.security.JwtAuthenticationFilter" level="DEBUG" additivity="false">
+        <appender-ref ref="JSON_FILE"/>
+    </logger>
+
     <!-- Root logger: Spring Boot default console + JSON file -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
