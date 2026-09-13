@@ -24,6 +24,13 @@
         </rollingPolicy>
     </appender>
 
+    <!-- Console appender (Spring Boot default pattern) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
     <!-- Logger levels -->
     <logger name="br.com.flagplatform" level="INFO"/>
     <logger name="org.springframework.security" level="WARN"/>
