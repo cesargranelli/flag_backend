@@ -4,8 +4,6 @@
     <!-- Import Spring Boot defaults -->
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
-    <!-- Property definitions -->
-    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"/>
     <property name="LOG_FILE" value="logs/flag_backend.log"/>
 
     <!-- JSON File Appender for structured logging -->
@@ -24,10 +22,12 @@
         </rollingPolicy>
     </appender>
 
-    <!-- Console appender (Spring Boot default pattern) -->
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>${LOG_PATTERN}</pattern>
+    <!-- JSON Console Appender with traceId/spanId (for request/response logging) -->
+    <appender name="TRACE_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"flag-backend","application":"flag_platform"}</customFields>
+            <includeContext>true</includeContext>
+            <includeMdc>true</includeMdc>
         </encoder>
     </appender>
 
@@ -38,7 +38,12 @@
     <logger name="io.micrometer" level="WARN"/>
     <logger name="com.zaxxer.hikari" level="WARN"/>
 
-    <!-- Root logger: Spring Boot console (default) + JSON file -->
+    <!-- Request/Response logging uses JSON console (traceId/spanId + body) -->
+    <logger name="br.com.flagplatform.security.RequestResponseLoggingFilter" level="INFO" additivity="false">
+        <appender-ref ref="TRACE_CONSOLE"/>
+    </logger>
+
+    <!-- Root logger: Spring Boot default console + JSON file -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="JSON_FILE"/>
