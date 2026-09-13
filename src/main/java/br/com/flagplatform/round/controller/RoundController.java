@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Tag(name = "Rounds", description = "Endpoints para criar e gerenciar rodadas")
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 public class RoundController {
@@ -34,14 +36,26 @@ public class RoundController {
 
     @Operation(
             summary = "Criar rodada",
-            description = "Cria uma nova rodada em um campeonato. Permitido apenas ao criador do campeonato ou ADMIN."
+            description = "Cria uma nova rodada em um campeonato. O competitionId é extraído do path. "
+                    + "Permitido apenas ao criador do campeonato ou ADMIN, enquanto estiver em DRAFT."
     )
     @ApiResponse(responseCode = "403", description = "Usuário não é o criador do campeonato nem ADMIN")
-    @PostMapping("/api/v1/rounds")
+    @ApiResponse(responseCode = "409", description = "Campeonato não está em status DRAFT")
+    @PostMapping("/api/v1/competitions/{competitionId}/rounds")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
-    public RoundResponse create(@Valid @RequestBody CreateRoundRequest request, Authentication authentication) {
-        return service.create(request, authentication.getName());
+    public RoundResponse create(
+            @Parameter(description = "Id do campeonato") @PathVariable UUID competitionId,
+            @Valid @RequestBody CreateRoundRequest request,
+            Authentication authentication) {
+        log.info("Recebida requisicao POST /api/v1/competitions/{}/rounds de {}: number={} name={}",
+                competitionId, authentication.getName(), request.number(), request.name());
+        var requestWithCompetition = new CreateRoundRequest(
+                competitionId,
+                request.number(),
+                request.name(),
+                request.type());
+        return service.create(requestWithCompetition, authentication.getName());
     }
 
     @Operation(
