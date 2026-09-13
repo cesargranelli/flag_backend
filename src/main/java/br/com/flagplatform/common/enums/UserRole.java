@@ -7,8 +7,8 @@ public enum UserRole implements PersistableEnum {
 
     ADMIN("ADMIN", "Administrador"),
     ORGANIZER("ORGANIZER", "Organizador"),
-    MESA("MESA", "Mesa"),
-    ADMIN_LIGA("ADMIN_LIGA", "Administrador da Liga"),
+    COMMISSIONER("COMMISSIONER", "Delegado"),
+    ADMIN_INSTITUTION("ADMIN_INSTITUTION", "Administrador da Liga"),
     REFEREE("REFEREE", "Árbitro"),
     CLUB_MANAGER("CLUB_MANAGER", "Gestor do Clube"),
     FAN("FAN", "Torcedor");
