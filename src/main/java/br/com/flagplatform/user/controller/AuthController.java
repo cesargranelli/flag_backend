@@ -66,7 +66,7 @@ public class AuthController {
 
     @Operation(
             summary = "Criar usuário",
-            description = "Cria um usuário com o papel informado (ADMIN, ORGANIZER ou MESA). Exclusivo de ADMIN."
+            description = "Cria um usuário com o papel informado (ADMIN, ORGANIZER, COMMISSIONER, REFEREE, MANAGER ou FAN). Exclusivo de ADMIN."
     )
     @PostMapping("/users")
     @ResponseStatus(HttpStatus.CREATED)

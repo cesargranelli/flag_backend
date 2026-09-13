@@ -64,9 +64,9 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/prometheus").permitAll()
                         // Cadastro público (login é via Firebase Auth SDK no frontend)
                         .requestMatchers(HttpMethod.POST, PUBLIC_AUTH_PATTERNS).permitAll()
-                        // Check-in de atletas exige role MESA/ADMIN/ADMIN_LIGA/REFEREE (não é leitura pública)
+                        // Check-in de atletas exige role COMMISSIONER/ADMIN/REFEREE (não é leitura pública)
                         .requestMatchers(HttpMethod.GET, "/api/v1/games/*/checkin")
-                                .hasAnyRole("ADMIN", "MESA", "ADMIN_LIGA", "REFEREE")
+                                .hasAnyRole("ADMIN", "COMMISSIONER", "REFEREE")
                         // Leitura pública para todas as entidades
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET_PATTERNS).permitAll()
                         // Leitura pública já permitida acima; demais GETs exigem autenticação

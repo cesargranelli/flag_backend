@@ -36,7 +36,7 @@ public class CheckInController {
             description = "Retorna o roster dos dois times do jogo com o status de check-in de cada atleta."
     )
     @GetMapping("/api/v1/games/{gameId}/checkin")
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_MESA)
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_COMMISSIONER)
     public List<CheckInResponse> getCheckinList(
             @Parameter(description = "Id do jogo") @PathVariable UUID gameId) {
         return service.getCheckinList(gameId);
@@ -48,7 +48,7 @@ public class CheckInController {
                     + "Registra quem validou e quando."
     )
     @PostMapping("/api/v1/games/{gameId}/checkin/{athleteId}")
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_MESA)
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_COMMISSIONER)
     public CheckInResponse checkin(
             @Parameter(description = "Id do jogo") @PathVariable UUID gameId,
             @Parameter(description = "Id do atleta") @PathVariable UUID athleteId,
@@ -63,7 +63,7 @@ public class CheckInController {
                     + "Retorna NOT_REGISTERED se o atleta não estiver no roster dos times."
     )
     @PostMapping("/api/v1/games/{gameId}/checkin/{athleteId}/validate")
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_MESA)
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_COMMISSIONER)
     public ValidationResponse validate(
             @Parameter(description = "Id do jogo") @PathVariable UUID gameId,
             @Parameter(description = "Id do atleta") @PathVariable UUID athleteId,
@@ -78,7 +78,7 @@ public class CheckInController {
                     + "Bloqueia numero duplicado dentro do mesmo time na partida."
     )
     @PutMapping("/api/v1/games/{gameId}/checkin/{athleteId}/match-number")
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_MESA)
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_COMMISSIONER)
     public CheckInResponse setMatchNumber(
             @Parameter(description = "Id do jogo") @PathVariable UUID gameId,
             @Parameter(description = "Id do atleta") @PathVariable UUID athleteId,

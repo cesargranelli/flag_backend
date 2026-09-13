@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
-import static br.com.flagplatform.common.security.SecurityExpressions.ADMIN_OR_MESA;
+import static br.com.flagplatform.common.security.SecurityExpressions.ADMIN_OR_COMMISSIONER;
 
 @Tag(name = "Plays", description = "Endpoints para play-by-play de jogos")
 @RestController
@@ -49,7 +49,7 @@ public class PlayController {
     @ApiResponse(responseCode = "403", description = "Usuário não autenticado ou sem permissão")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize(ADMIN_OR_MESA)
+    @PreAuthorize(ADMIN_OR_COMMISSIONER)
     public PlayResponse create(
             @Parameter(description = "Id do jogo") @PathVariable UUID gameId,
             @Valid @RequestBody CreatePlayRequest request) {

@@ -127,7 +127,7 @@ public class GameController {
             description = "Atualiza o status de um jogo conforme as transições válidas (SCHEDULED->OPEN, OPEN->IN_PROGRESS, IN_PROGRESS->CONFERENCE, CONFERENCE->FINISHED, SCHEDULED/OPEN->CANCELLED). Requer autenticação."
     )
     @PatchMapping("/api/v1/games/{id}/status")
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_MESA)
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_COMMISSIONER)
     public GameResponse updateStatus(
             @Parameter(description = "Id do jogo") @PathVariable UUID id,
             @Valid @RequestBody UpdateGameStatusRequest request) {
@@ -140,7 +140,7 @@ public class GameController {
     )
     @PostMapping("/api/v1/games/{id}/result")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_MESA)
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_COMMISSIONER)
     public GameResponse registerResult(
             @Parameter(description = "Id do jogo") @PathVariable UUID id,
             @Valid @RequestBody RegisterGameResultRequest request) {
@@ -152,7 +152,7 @@ public class GameController {
             description = "Adiciona 1 ponto ao time informado durante a partida (IN_PROGRESS) e registra o evento. Requer autenticacao."
     )
     @PostMapping("/api/v1/games/{id}/score/events")
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_MESA)
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_COMMISSIONER)
     public GameResponse addScoreEvent(
             @Parameter(description = "Id do jogo") @PathVariable UUID id,
             @Valid @RequestBody AddScoreEventRequest request) {
@@ -164,7 +164,7 @@ public class GameController {
             description = "Define os pontos de casa e fora durante a partida (IN_PROGRESS). Requer autenticacao."
     )
     @PatchMapping("/api/v1/games/{id}/score")
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_MESA)
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_COMMISSIONER)
     public GameResponse correctScore(
             @Parameter(description = "Id do jogo") @PathVariable UUID id,
             @Valid @RequestBody UpdateScoreRequest request) {

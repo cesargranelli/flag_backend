@@ -41,7 +41,7 @@ public class AuthService implements UserLookup {
     private final FirebaseTokenService firebaseTokenService;
     private final UserMapper mapper;
 
-    @Value("${app.security.default-role:ADMIN_LIGA}")
+    @Value("${app.security.default-role:ORGANIZER}")
     private String defaultRole;
 
     @Transactional
@@ -56,7 +56,7 @@ public class AuthService implements UserLookup {
         // O backend apenas cria o registro no PostgreSQL.
 
         // Cria registro no PostgreSQL
-        //    - Primeiro usuário: ACTIVE + ADMIN_LIGA (permite login imediato)
+        //    - Primeiro usuário: ACTIVE + ADMIN (permite login imediato)
         //    - Demais: PENDING (aguardando aprovação)
         UserEntity entity = new UserEntity();
         entity.setName(request.name().trim());
@@ -67,8 +67,8 @@ public class AuthService implements UserLookup {
         boolean isFirstUser = userRepository.count() == 0;
         if (isFirstUser) {
             entity.setStatus(UserStatus.ACTIVE);
-            entity.setRole(UserRole.ADMIN_INSTITUTION);
-            log.info("Primeiro usuário registrado — auto-ativando como ADMIN_LIGA: email={}", email);
+            entity.setRole(UserRole.ADMIN);
+            log.info("Primeiro usuário registrado — auto-ativando como ADMIN: email={}", email);
         } else {
             entity.setStatus(UserStatus.PENDING);
         }
@@ -119,16 +119,16 @@ public class AuthService implements UserLookup {
         newUser.setFirebaseUid(uid);
         newUser.setStatus(UserStatus.ACTIVE);
 
-        // Role: ADMIN_LIGA se primeiro usuário ou default configurado
+        // Role: ADMIN se primeiro usuário, ORGANIZER se default configurado
         boolean isFirstUser = userRepository.count() == 0;
         UserRole assignedRole;
         if (isFirstUser) {
-            assignedRole = UserRole.ADMIN_INSTITUTION;
+            assignedRole = UserRole.ADMIN;
         } else {
             try {
                 assignedRole = UserRole.valueOf(defaultRole);
             } catch (Exception e) {
-                assignedRole = UserRole.ADMIN_INSTITUTION;
+                assignedRole = UserRole.ORGANIZER;
             }
         }
         newUser.setRole(assignedRole);
@@ -190,7 +190,7 @@ public class AuthService implements UserLookup {
     @Override
     public boolean isAdminByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(normalize(email))
-                .map(user -> user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.ADMIN_INSTITUTION)
+                .map(user -> user.getRole() == UserRole.ADMIN)
                 .orElse(false);
     }
 
@@ -260,7 +260,7 @@ public class AuthService implements UserLookup {
             }
             newUser.setName(name.trim());
             newUser.setStatus(UserStatus.ACTIVE);
-            newUser.setRole(UserRole.ADMIN_INSTITUTION);
+            newUser.setRole(UserRole.ADMIN);
             newUser.setFirebaseUid("dev-" + UUID.randomUUID());
             return newUser;
         });
