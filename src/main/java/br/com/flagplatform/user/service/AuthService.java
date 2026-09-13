@@ -6,13 +6,13 @@ import br.com.flagplatform.security.FirebaseUserInfo;
 import br.com.flagplatform.security.FirebaseTokenService;
 import br.com.flagplatform.security.UserPrincipal;
 import br.com.flagplatform.user.UserLookup;
+import br.com.flagplatform.user.dto.request.ChangeUserRoleRequest;
 import br.com.flagplatform.user.dto.request.CreateUserRequest;
 import br.com.flagplatform.user.dto.request.DevTokenRequest;
 import br.com.flagplatform.user.dto.request.RegisterRequest;
 import br.com.flagplatform.user.dto.response.DevTokenResponse;
 import br.com.flagplatform.user.dto.response.UserResponse;
 import br.com.flagplatform.user.entity.UserEntity;
-import br.com.flagplatform.user.exception.AccountPendingApprovalException;
 import br.com.flagplatform.user.exception.EmailAlreadyExistsException;
 import br.com.flagplatform.user.exception.InvalidCredentialsException;
 import br.com.flagplatform.user.exception.UserNotFoundException;
@@ -67,7 +67,7 @@ public class AuthService implements UserLookup {
         boolean isFirstUser = userRepository.count() == 0;
         if (isFirstUser) {
             entity.setStatus(UserStatus.ACTIVE);
-            entity.setRole(UserRole.ADMIN_LIGA);
+            entity.setRole(UserRole.ADMIN_INSTITUTION);
             log.info("Primeiro usuário registrado — auto-ativando como ADMIN_LIGA: email={}", email);
         } else {
             entity.setStatus(UserStatus.PENDING);
@@ -123,12 +123,12 @@ public class AuthService implements UserLookup {
         boolean isFirstUser = userRepository.count() == 0;
         UserRole assignedRole;
         if (isFirstUser) {
-            assignedRole = UserRole.ADMIN_LIGA;
+            assignedRole = UserRole.ADMIN_INSTITUTION;
         } else {
             try {
                 assignedRole = UserRole.valueOf(defaultRole);
             } catch (Exception e) {
-                assignedRole = UserRole.ADMIN_LIGA;
+                assignedRole = UserRole.ADMIN_INSTITUTION;
             }
         }
         newUser.setRole(assignedRole);
@@ -190,7 +190,7 @@ public class AuthService implements UserLookup {
     @Override
     public boolean isAdminByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(normalize(email))
-                .map(user -> user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.ADMIN_LIGA)
+                .map(user -> user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.ADMIN_INSTITUTION)
                 .orElse(false);
     }
 
@@ -239,6 +239,16 @@ public class AuthService implements UserLookup {
     }
 
     @Transactional
+    public UserResponse changeRole(UUID id, ChangeUserRoleRequest request) {
+        UserEntity user = findEntityById(id);
+        user.setRole(request.role());
+        UserEntity saved = userRepository.save(user);
+        syncCustomClaims(saved);
+        log.info("Role alterado para {} no usuário id={}", request.role(), id);
+        return mapper.toResponse(saved);
+    }
+
+    @Transactional
     public DevTokenResponse generateDevToken(DevTokenRequest request) {
         String email = normalize(request.email());
         UserEntity user = userRepository.findByEmailIgnoreCase(email).orElseGet(() -> {
@@ -250,7 +260,7 @@ public class AuthService implements UserLookup {
             }
             newUser.setName(name.trim());
             newUser.setStatus(UserStatus.ACTIVE);
-            newUser.setRole(UserRole.ADMIN_LIGA);
+            newUser.setRole(UserRole.ADMIN_INSTITUTION);
             newUser.setFirebaseUid("dev-" + UUID.randomUUID());
             return newUser;
         });
