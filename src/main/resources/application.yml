@@ -46,6 +46,12 @@ management:
     health:
       probes:
         enabled: true
+# Micrometer Tracing - Structured JSON Logging
+  tracing:
+    sampling:
+      probability: 1.0
+  observation:
+    enabled: true
 
 # Origens adicionais liberadas no CORS (ex.: frontends publicados),
 # separadas por vírgula. Localhost/127.0.0.1 em qualquer porta já são
@@ -96,11 +102,3 @@ logging:
     console: json
   exceptions:
     none: org.springframework.security.access.AccessDeniedException
-
-# Micrometer Tracing - Structured JSON Logging
-management:
-  tracing:
-    sampling:
-      probability: 1.0
-  observation:
-    enabled: true
