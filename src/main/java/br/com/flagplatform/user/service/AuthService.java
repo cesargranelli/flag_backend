@@ -6,6 +6,7 @@ import br.com.flagplatform.security.FirebaseUserInfo;
 import br.com.flagplatform.security.FirebaseTokenService;
 import br.com.flagplatform.security.UserPrincipal;
 import br.com.flagplatform.user.UserLookup;
+import br.com.flagplatform.user.dto.request.ChangeUserRoleRequest;
 import br.com.flagplatform.user.dto.request.CreateUserRequest;
 import br.com.flagplatform.user.dto.request.DevTokenRequest;
 import br.com.flagplatform.user.dto.request.RegisterRequest;
@@ -235,6 +236,16 @@ public class AuthService implements UserLookup {
         user.setStatus(UserStatus.REJECTED);
         UserEntity saved = userRepository.save(user);
         syncCustomClaims(saved);
+        return mapper.toResponse(saved);
+    }
+
+    @Transactional
+    public UserResponse changeRole(UUID id, ChangeUserRoleRequest request) {
+        UserEntity user = findEntityById(id);
+        user.setRole(request.role());
+        UserEntity saved = userRepository.save(user);
+        syncCustomClaims(saved);
+        log.info("Role alterado para {} no usuário id={}", request.role(), id);
         return mapper.toResponse(saved);
     }
 

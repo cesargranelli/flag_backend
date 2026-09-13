@@ -1,6 +1,7 @@
 package br.com.flagplatform.user.controller;
 
 import br.com.flagplatform.common.security.SecurityExpressions;
+import br.com.flagplatform.user.dto.request.ChangeUserRoleRequest;
 import br.com.flagplatform.user.dto.request.CreateUserRequest;
 import br.com.flagplatform.user.dto.request.DevTokenRequest;
 import br.com.flagplatform.user.dto.request.RegisterRequest;
@@ -16,6 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -111,6 +113,16 @@ public class AuthController {
     @PreAuthorize(SecurityExpressions.ADMIN)
     public UserResponse reject(@PathVariable UUID id) {
         return service.reject(id);
+    }
+
+    @Operation(
+            summary = "Alterar role de usuário",
+            description = "Altera o papel (role) de um usuário. Exclusivo de ADMIN."
+    )
+    @PatchMapping("/users/{id}/role")
+    @PreAuthorize(SecurityExpressions.ADMIN)
+    public UserResponse changeRole(@PathVariable UUID id, @Valid @RequestBody ChangeUserRoleRequest request) {
+        return service.changeRole(id, request);
     }
 
 }
