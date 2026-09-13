@@ -9,6 +9,7 @@ import br.com.flagplatform.common.pagination.PagedResponse;
 import br.com.flagplatform.common.validation.DocumentValidator;
 import br.com.flagplatform.organization.OrganizationLookup;
 import br.com.flagplatform.organization.dto.request.CreateOrganizationRequest;
+import br.com.flagplatform.organization.dto.request.UpdateOrganizationRequest;
 import br.com.flagplatform.organization.dto.response.OrganizationCreatedResponse;
 import br.com.flagplatform.organization.dto.response.OrganizationResponse;
 import br.com.flagplatform.organization.entity.OrganizationEntity;
@@ -74,6 +75,93 @@ public class OrganizationService implements OrganizationLookup {
         OrganizationEntity saved = repository.save(entity);
 
         return mapper.toResponse(saved);
+    }
+
+    @Transactional
+    public OrganizationResponse update(UUID id, UpdateOrganizationRequest req) {
+        OrganizationEntity entity = findEntityById(id);
+
+        if (req.tradeName() != null && !req.tradeName().isBlank()) {
+            if (repository.existsByTradeNameIgnoreCaseAndIdNot(req.tradeName().trim(), id)) {
+                throw new DuplicateTradeNameException(req.tradeName().trim());
+            }
+            entity.setTradeName(req.tradeName().trim());
+        }
+
+        if (req.legalName() != null && !req.legalName().isBlank()) {
+            entity.setLegalName(req.legalName().trim());
+        }
+
+        if (req.abbreviation() != null) {
+            entity.setAbbreviation(req.abbreviation().trim().isEmpty() ? null : req.abbreviation().trim());
+        }
+
+        if (req.organizationType() != null) {
+            entity.setOrganizationType(req.organizationType());
+        }
+
+        if (req.document() != null) {
+            validateDocument(req.document(), req.documentType() != null ? req.documentType() : entity.getDocumentType(), id);
+            entity.setDocument(req.document().trim().isEmpty() ? null : req.document().trim().replaceAll("\\D", ""));
+            if (req.documentType() != null) {
+                entity.setDocumentType(req.documentType());
+            }
+        }
+
+        if (req.presidentName() != null && !req.presidentName().isBlank()) {
+            entity.setPresidentName(req.presidentName().trim());
+        }
+
+        if (req.presidentCpf() != null && !req.presidentCpf().isBlank()) {
+            validatePresident(req.presidentCpf().trim());
+            entity.setPresidentCpf(req.presidentCpf().trim().replaceAll("\\D", ""));
+        }
+
+        if (req.email() != null) {
+            entity.setEmail(req.email().trim().isEmpty() ? null : req.email().trim());
+        }
+        if (req.phone() != null) {
+            entity.setPhone(req.phone().trim().isEmpty() ? null : req.phone().trim());
+        }
+        if (req.website() != null) {
+            entity.setWebsite(req.website().trim().isEmpty() ? null : req.website().trim());
+        }
+        if (req.instagram() != null) {
+            entity.setInstagram(req.instagram().trim().isEmpty() ? null : req.instagram().trim());
+        }
+        if (req.country() != null && !req.country().isBlank()) {
+            entity.setCountry(req.country().trim());
+        }
+        if (req.state() != null) {
+            entity.setState(req.state().trim().isEmpty() ? null : req.state().trim());
+        }
+        if (req.city() != null) {
+            entity.setCity(req.city().trim().isEmpty() ? null : req.city().trim());
+        }
+        if (req.logoUrl() != null) {
+            entity.setLogoUrl(req.logoUrl().trim().isEmpty() ? null : req.logoUrl().trim());
+        }
+        if (req.primaryColor() != null) {
+            entity.setPrimaryColor(req.primaryColor().trim().isEmpty() ? null : req.primaryColor().trim());
+        }
+        if (req.secondaryColor() != null) {
+            entity.setSecondaryColor(req.secondaryColor().trim().isEmpty() ? null : req.secondaryColor().trim());
+        }
+        if (req.tertiaryColor() != null) {
+            entity.setTertiaryColor(req.tertiaryColor().trim().isEmpty() ? null : req.tertiaryColor().trim());
+        }
+        if (req.quaternaryColor() != null) {
+            entity.setQuaternaryColor(req.quaternaryColor().trim().isEmpty() ? null : req.quaternaryColor().trim());
+        }
+        if (req.timezone() != null && !req.timezone().isBlank()) {
+            entity.setTimezone(req.timezone().trim());
+        }
+        if (req.locale() != null && !req.locale().isBlank()) {
+            entity.setLocale(req.locale().trim());
+        }
+
+        OrganizationEntity saved = repository.save(entity);
+        return mapper.toDetailResponse(saved);
     }
 
     public PagedResponse<OrganizationResponse> findAll(

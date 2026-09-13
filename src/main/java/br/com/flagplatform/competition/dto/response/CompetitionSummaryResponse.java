@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public record CompetitionSummaryResponse(
         UUID id,
+        UUID organizationId,
         String name,
         String organizationName,
         CompetitionStatus status,

@@ -1,7 +1,7 @@
 package br.com.flagplatform.roster.service;
 
-import br.com.flagplatform.athlete.AthleteInfo;
-import br.com.flagplatform.athlete.AthleteLookup;
+import br.com.flagplatform.person.PersonInfo;
+import br.com.flagplatform.person.PersonLookup;
 import br.com.flagplatform.common.enums.RosterStatus;
 import br.com.flagplatform.competition.CompetitionLookup;
 import br.com.flagplatform.roster.RosterLookup;
@@ -38,7 +38,7 @@ public class RosterService implements RosterLookup {
     private final RosterEntryRepository rosterEntryRepository;
     private final RosterRepository rosterRepository;
     private final TeamLookup teamLookup;
-    private final AthleteLookup athleteLookup;
+    private final PersonLookup personLookup;
     private final CompetitionLookup competitionLookup;
 
     /**
@@ -59,7 +59,7 @@ public class RosterService implements RosterLookup {
     @Transactional
     public RosterEntryResponse add(UUID teamId, UUID competitionId, AddRosterEntryRequest request, String currentUserEmail) {
         assertTeamManagedBy(teamId, currentUserEmail);
-        athleteLookup.assertExists(request.athleteId());
+        personLookup.assertExists(request.athleteId());
 
         RosterEntity roster = getOrCreateRoster(teamId, competitionId, currentUserEmail);
 
@@ -92,7 +92,7 @@ public class RosterService implements RosterLookup {
         for (int i = 0; i < request.athletes().size(); i++) {
             RosterBatchItem item = request.athletes().get(i);
             int line = i + 2; // linha 1 = cabecalho
-            if (!athleteLookup.existsById(item.athleteId())) {
+            if (!personLookup.existsById(item.athleteId())) {
                 lines.add(new RosterBatchLineResult(
                         line, "INVALID", "Atleta não encontrado", item));
                 continue;
@@ -154,6 +154,84 @@ public class RosterService implements RosterLookup {
         rosterEntryRepository.delete(entity);
     }
 
+    // -----------------------------------------------------------------------
+    // Elenco-base do time (sem competição associada)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Retorna ou cria o elenco-base permanente de um time (competition_id IS NULL).
+     */
+    private RosterEntity getOrCreateBaseRoster(UUID teamId) {
+        return rosterRepository.findByTeamIdAndCompetitionIdIsNull(teamId)
+                .orElseGet(() -> {
+                    RosterEntity roster = new RosterEntity();
+                    roster.setTeamId(teamId);
+                    roster.setCompetitionId(null);
+                    roster.setStatus(RosterStatus.ACTIVE);
+                    roster.setSeason("BASE");
+                    return rosterRepository.save(roster);
+                });
+    }
+
+    /**
+     * Lista os atletas do elenco-base de um time.
+     */
+    public List<RosterEntryResponse> findBaseRoster(UUID teamId) {
+        teamLookup.assertExists(teamId);
+
+        return rosterRepository.findByTeamIdAndCompetitionIdIsNull(teamId)
+                .map(roster -> rosterEntryRepository
+                        .findAllByRosterIdOrderByCreatedAtAsc(roster.getId())
+                        .stream()
+                        .map(this::toResponse)
+                        .sorted(Comparator
+                                .comparing(RosterEntryResponse::number,
+                                        Comparator.nullsLast(Integer::compareTo))
+                                .thenComparing(RosterEntryResponse::athleteName,
+                                        String.CASE_INSENSITIVE_ORDER))
+                        .toList())
+                .orElse(List.of());
+    }
+
+    /**
+     * Adiciona um atleta ao elenco-base do time (criando o elenco-base se ainda não existir).
+     */
+    @Transactional
+    public RosterEntryResponse addToBaseRoster(UUID teamId, AddRosterEntryRequest request, String currentUserEmail) {
+        assertTeamManagedBy(teamId, currentUserEmail);
+        personLookup.assertExists(request.athleteId());
+
+        RosterEntity roster = getOrCreateBaseRoster(teamId);
+
+        if (rosterEntryRepository.existsByRosterIdAndAthleteId(roster.getId(), request.athleteId())) {
+            throw new DuplicateRosterEntryException();
+        }
+
+        RosterEntryEntity entity = mapper.toEntity(request);
+        entity.setRosterId(roster.getId());
+        if (entity.getStatus() == null) {
+            entity.setStatus(RosterStatus.ACTIVE);
+        }
+
+        return toResponse(rosterEntryRepository.save(entity));
+    }
+
+    /**
+     * Remove um atleta do elenco-base do time.
+     */
+    @Transactional
+    public void removeFromBaseRoster(UUID teamId, UUID athleteId, String currentUserEmail) {
+        assertTeamManagedBy(teamId, currentUserEmail);
+
+        RosterEntity roster = rosterRepository.findByTeamIdAndCompetitionIdIsNull(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("Elenco base não encontrado para o time"));
+
+        RosterEntryEntity entity = rosterEntryRepository.findByRosterIdAndAthleteId(roster.getId(), athleteId)
+                .orElseThrow(() -> new RosterEntryNotFoundException(teamId, athleteId));
+
+        rosterEntryRepository.delete(entity);
+    }
+
     @Transactional
     public void deactivate(UUID teamId, UUID competitionId, String currentUserEmail) {
         assertTeamManagedBy(teamId, currentUserEmail);
@@ -196,18 +274,17 @@ public class RosterService implements RosterLookup {
     }
 
     private RosterEntryResponse toResponse(RosterEntryEntity entity) {
-        AthleteInfo athlete = athleteLookup.findAthleteInfoById(entity.getAthleteId());
+        PersonInfo person = personLookup.findPersonInfoById(entity.getAthleteId());
 
         return new RosterEntryResponse(
                 entity.getId(),
                 entity.getRosterId(),
                 entity.getAthleteId(),
-                athlete.name(),
-                athlete.nickname(),
+                person.name(),
                 entity.getNickname(),
-                athlete.position(),
+                entity.getPositions(),
                 entity.getNumber(),
-                athlete.photoUrl(),
+                person.photoUrl(),
                 entity.getStatus(),
                 entity.getCreatedAt());
     }

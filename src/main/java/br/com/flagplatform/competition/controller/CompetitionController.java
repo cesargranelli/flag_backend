@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Tag(name = "Competitions", description = "Endpoints para criar e gerenciar campeonatos")
 @RestController
 @RequiredArgsConstructor
@@ -50,6 +52,7 @@ public class CompetitionController {
     public CompetitionResponse create(
             @Valid @RequestBody CreateCompetitionRequest request,
             Authentication authentication) {
+        log.info("Recebida requisicao POST /api/v1/competitions de {}: {}", authentication.getName(), request);
         return service.create(request, authentication.getName());
     }
 
@@ -147,6 +150,7 @@ public class CompetitionController {
             @Parameter(description = "Id do campeonato") @PathVariable UUID id,
             @Valid @RequestBody UpdateCompetitionRequest request,
             Authentication authentication) {
+        log.info("Recebida requisicao PUT /api/v1/competitions/{} de {}: {}", id, authentication.getName(), request);
         return service.update(id, request, authentication.getName());
     }
 

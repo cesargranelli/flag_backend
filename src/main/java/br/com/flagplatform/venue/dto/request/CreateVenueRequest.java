@@ -1,7 +1,10 @@
 package br.com.flagplatform.venue.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+
+import java.util.UUID;
 
 public record CreateVenueRequest(
         @NotBlank
@@ -12,6 +15,9 @@ public record CreateVenueRequest(
         String address,
 
         @Size(max = 500)
-        String mapsUrl
+        String mapsUrl,
+
+        @NotNull
+        UUID organizationId
 ) {
 }

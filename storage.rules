@@ -10,12 +10,19 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
 
-    // Teams logos
-    match /teams/{teamId}/{allPaths=**} {
+    // Institutions logos
+    match /institutions/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null
-                   && request.auth.token.role in ['ADMIN', 'ORGANIZER']
-                   && request.resource.size < 2 * 1024 * 1024
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Teams logos
+    match /teams/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
 

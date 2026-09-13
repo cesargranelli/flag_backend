@@ -1,13 +1,15 @@
 package br.com.flagplatform.team.service;
 
+import br.com.flagplatform.common.enums.CompetitionTeamStatus;
 import br.com.flagplatform.common.enums.OrganizationStatus;
-import br.com.flagplatform.division.DivisionLookup;
-import br.com.flagplatform.division.exception.DivisionCompetitionMismatchException;
+import br.com.flagplatform.competition.CompetitionLookup;
+import br.com.flagplatform.institution.InstitutionLookup;
 import br.com.flagplatform.organization.OrganizationLookup;
 import br.com.flagplatform.team.TeamInfo;
 import br.com.flagplatform.team.TeamLookup;
 import br.com.flagplatform.team.dto.request.CreateTeamRequest;
 import br.com.flagplatform.team.dto.request.EnrollTeamRequest;
+import br.com.flagplatform.team.dto.request.UpdateCompetitionTeamRequest;
 import br.com.flagplatform.team.dto.request.UpdateTeamRequest;
 import br.com.flagplatform.team.dto.response.CompetitionTeamResponse;
 import br.com.flagplatform.team.dto.response.TeamResponse;
@@ -34,7 +36,8 @@ public class TeamService implements TeamLookup {
     private final TeamRepository teamRepository;
     private final CompetitionTeamRepository competitionTeamRepository;
     private final OrganizationLookup organizationLookup;
-    private final DivisionLookup divisionLookup;
+    private final InstitutionLookup institutionLookup;
+    private final CompetitionLookup competitionLookup;
 
     @Transactional
     public TeamResponse create(UUID organizationId, CreateTeamRequest request, String currentUserEmail) {
@@ -52,8 +55,29 @@ public class TeamService implements TeamLookup {
         return toResponse(teamRepository.save(entity));
     }
 
+    @Transactional
+    public TeamResponse createForInstitution(UUID institutionId, CreateTeamRequest request, String currentUserEmail) {
+        institutionLookup.assertExists(institutionId);
+
+        if (teamRepository.existsByClubIdAndNameIgnoreCase(
+                institutionId, request.name())) {
+            throw new DuplicateTeamNameException(request.name());
+        }
+
+        TeamEntity entity = mapper.toEntity(request);
+        entity.setClubId(institutionId);
+        entity.setOrganizationId(null);
+        entity.setStatus(OrganizationStatus.ACTIVE);
+
+        return toResponse(teamRepository.save(entity));
+    }
+
     public List<TeamResponse> findByOrganizationId(UUID organizationId) {
         return toResponseList(teamRepository.findAllByOrganizationIdOrderByNameAsc(organizationId));
+    }
+
+    public List<TeamResponse> findByInstitutionId(UUID institutionId) {
+        return toResponseList(teamRepository.findAllByClubIdOrderByNameAsc(institutionId));
     }
 
     public TeamResponse findById(UUID id) {
@@ -101,14 +125,27 @@ public class TeamService implements TeamLookup {
     @Transactional
     public CompetitionTeamResponse enrollInCompetition(
             UUID competitionId, UUID teamId, EnrollTeamRequest request, String currentUserEmail) {
+        competitionLookup.assertExists(competitionId);
+
+        // Validação: janela de inscrição deve estar aberta
+        if (!competitionLookup.isEnrollmentWindowOpen(competitionId)) {
+            throw new IllegalStateException(
+                    "A janela de inscrição de equipes para esta competição está encerrada ou não foi aberta.");
+        }
+
         TeamEntity team = findEntityById(teamId);
 
-        if (request != null && request.divisionId() != null) {
-            divisionLookup.assertExists(request.divisionId());
-            UUID divisionCompetition = divisionLookup.findCompetitionId(request.divisionId());
-            if (!divisionCompetition.equals(competitionId)) {
-                throw new DivisionCompetitionMismatchException();
-            }
+        boolean isCompetitionManager = true;
+        try {
+            competitionLookup.assertManagedBy(competitionId, currentUserEmail);
+        } catch (Exception e) {
+            isCompetitionManager = false;
+        }
+
+        // Se não for o gestor da competição, deve ser gestor da agremiação dona do time ou ADMIN
+        if (!isCompetitionManager) {
+            // A inscrição feita pela agremiação sempre entra com status PENDING
+            // (aguardando homologação da organização)
         }
 
         if (competitionTeamRepository.existsByCompetitionIdAndTeamId(competitionId, teamId)) {
@@ -118,15 +155,83 @@ public class TeamService implements TeamLookup {
         CompetitionTeamEntity entity = new CompetitionTeamEntity();
         entity.setCompetitionId(competitionId);
         entity.setTeamId(teamId);
-        entity.setDivisionId(request != null ? request.divisionId() : null);
+
+        if (isCompetitionManager && request != null) {
+            entity.setStatus(request.status() != null ? request.status() : CompetitionTeamStatus.PENDING);
+            entity.setGroupName(request.groupName());
+            entity.setConferenceName(request.conferenceName());
+            entity.setDivisionName(request.divisionName());
+            entity.setSeedNumber(request.seedNumber());
+        } else {
+            // Solicitação feita pela agremiação/clube: status inicial é sempre PENDING
+            entity.setStatus(CompetitionTeamStatus.PENDING);
+        }
 
         CompetitionTeamEntity saved = competitionTeamRepository.save(entity);
-
-        return toCompetitionTeamResponse(saved);
+        return toCompetitionTeamResponse(saved, team);
     }
 
     @Transactional
-    public void removeFromCompetition(UUID competitionId, UUID teamId) {
+    public CompetitionTeamResponse updateAllocation(
+            UUID competitionId, UUID teamId, UpdateCompetitionTeamRequest request, String currentUserEmail) {
+        competitionLookup.assertExists(competitionId);
+        competitionLookup.assertManagedBy(competitionId, currentUserEmail);
+        TeamEntity team = findEntityById(teamId);
+
+        CompetitionTeamEntity entity = competitionTeamRepository
+                .findByCompetitionIdAndTeamId(competitionId, teamId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Inscrição do time " + teamId + " na competição " + competitionId + " não encontrada"));
+
+        if (request.status() != null) {
+            entity.setStatus(request.status());
+        }
+        entity.setGroupName(request.groupName());
+        entity.setConferenceName(request.conferenceName());
+        entity.setDivisionName(request.divisionName());
+        entity.setSeedNumber(request.seedNumber());
+
+        CompetitionTeamEntity saved = competitionTeamRepository.save(entity);
+        return toCompetitionTeamResponse(saved, team);
+    }
+
+    @Transactional
+    public CompetitionTeamResponse approveTeam(UUID competitionId, UUID teamId, String currentUserEmail) {
+        competitionLookup.assertExists(competitionId);
+        competitionLookup.assertManagedBy(competitionId, currentUserEmail);
+        TeamEntity team = findEntityById(teamId);
+
+        CompetitionTeamEntity entity = competitionTeamRepository
+                .findByCompetitionIdAndTeamId(competitionId, teamId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Inscrição do time " + teamId + " na competição " + competitionId + " não encontrada"));
+
+        entity.setStatus(CompetitionTeamStatus.APPROVED);
+        CompetitionTeamEntity saved = competitionTeamRepository.save(entity);
+        return toCompetitionTeamResponse(saved, team);
+    }
+
+    @Transactional
+    public CompetitionTeamResponse rejectTeam(UUID competitionId, UUID teamId, String currentUserEmail) {
+        competitionLookup.assertExists(competitionId);
+        competitionLookup.assertManagedBy(competitionId, currentUserEmail);
+        TeamEntity team = findEntityById(teamId);
+
+        CompetitionTeamEntity entity = competitionTeamRepository
+                .findByCompetitionIdAndTeamId(competitionId, teamId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Inscrição do time " + teamId + " na competição " + competitionId + " não encontrada"));
+
+        entity.setStatus(CompetitionTeamStatus.REJECTED);
+        CompetitionTeamEntity saved = competitionTeamRepository.save(entity);
+        return toCompetitionTeamResponse(saved, team);
+    }
+
+    @Transactional
+    public void removeFromCompetition(UUID competitionId, UUID teamId, String currentUserEmail) {
+        competitionLookup.assertExists(competitionId);
+        competitionLookup.assertManagedBy(competitionId, currentUserEmail);
+
         CompetitionTeamEntity entity = competitionTeamRepository
                 .findByCompetitionIdAndTeamId(competitionId, teamId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -136,6 +241,13 @@ public class TeamService implements TeamLookup {
 
     public List<CompetitionTeamResponse> findByCompetitionId(UUID competitionId) {
         return competitionTeamRepository.findAllByCompetitionIdOrderByCreatedAtAsc(competitionId)
+                .stream()
+                .map(this::toCompetitionTeamResponse)
+                .toList();
+    }
+
+    public List<CompetitionTeamResponse> findByTeamId(UUID teamId) {
+        return competitionTeamRepository.findAllByTeamIdOrderByCreatedAtAsc(teamId)
                 .stream()
                 .map(this::toCompetitionTeamResponse)
                 .toList();
@@ -151,34 +263,58 @@ public class TeamService implements TeamLookup {
 
     private CompetitionTeamResponse toCompetitionTeamResponse(CompetitionTeamEntity ct) {
         TeamEntity team = teamRepository.findById(ct.getTeamId()).orElse(null);
+        return toCompetitionTeamResponse(ct, team);
+    }
+
+    private CompetitionTeamResponse toCompetitionTeamResponse(CompetitionTeamEntity ct, TeamEntity team) {
         String teamName = team != null ? team.getName() : "Desconhecido";
+        String teamShortName = team != null ? team.getShortName() : null;
+        String teamLogoUrl = team != null ? team.getLogoUrl() : null;
         UUID organizationId = team != null ? team.getOrganizationId() : null;
         String organizationName = organizationId != null
                 ? organizationLookup.findTradeNameById(organizationId)
+                : null;
+        UUID clubId = team != null ? team.getClubId() : null;
+        String clubName = clubId != null
+                ? institutionLookup.findTradeNameById(clubId)
                 : null;
         return new CompetitionTeamResponse(
                 ct.getId(),
                 ct.getCompetitionId(),
                 ct.getTeamId(),
                 teamName,
+                teamShortName,
+                teamLogoUrl,
                 organizationId,
                 organizationName,
-                ct.getDivisionId(),
-                ct.getCreatedAt());
+                clubId,
+                clubName,
+                ct.getStatus(),
+                ct.getGroupName(),
+                ct.getConferenceName(),
+                ct.getDivisionName(),
+                ct.getSeedNumber(),
+                ct.getCreatedAt(),
+                ct.getUpdatedAt());
     }
 
     /**
-     * Resolve o nome da organização (clube) para enriquecer o TeamResponse.
+     * Resolve o nome da organização / agremiação para enriquecer o TeamResponse.
      */
     private TeamResponse toResponse(TeamEntity entity) {
         TeamResponse base = mapper.toResponse(entity);
         String organizationName = entity.getOrganizationId() != null
                 ? organizationLookup.findTradeNameById(entity.getOrganizationId())
                 : null;
+        String clubName = entity.getClubId() != null
+                ? institutionLookup.findTradeNameById(entity.getClubId())
+                : null;
         return new TeamResponse(
                 base.id(),
                 base.organizationId(),
                 organizationName,
+                entity.getClubId(),
+                clubName,
                 base.name(),
                 base.shortName(),
                 base.sportName(),

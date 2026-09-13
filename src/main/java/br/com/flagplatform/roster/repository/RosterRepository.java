@@ -17,4 +17,8 @@ public interface RosterRepository extends JpaRepository<RosterEntity, UUID> {
 
     List<RosterEntity> findAllByTeamIdOrderByCreatedAtDesc(UUID teamId);
 
+    /** Retorna o elenco-base do time (competition_id IS NULL). */
+    Optional<RosterEntity> findByTeamIdAndCompetitionIdIsNull(UUID teamId);
+
 }
+

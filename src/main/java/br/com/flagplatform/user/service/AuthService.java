@@ -13,7 +13,6 @@ import br.com.flagplatform.user.dto.request.RegisterRequest;
 import br.com.flagplatform.user.dto.response.DevTokenResponse;
 import br.com.flagplatform.user.dto.response.UserResponse;
 import br.com.flagplatform.user.entity.UserEntity;
-import br.com.flagplatform.user.exception.AccountPendingApprovalException;
 import br.com.flagplatform.user.exception.EmailAlreadyExistsException;
 import br.com.flagplatform.user.exception.InvalidCredentialsException;
 import br.com.flagplatform.user.exception.UserNotFoundException;
@@ -68,7 +67,7 @@ public class AuthService implements UserLookup {
         boolean isFirstUser = userRepository.count() == 0;
         if (isFirstUser) {
             entity.setStatus(UserStatus.ACTIVE);
-            entity.setRole(UserRole.ADMIN_LIGA);
+            entity.setRole(UserRole.ADMIN_INSTITUTION);
             log.info("Primeiro usuário registrado — auto-ativando como ADMIN_LIGA: email={}", email);
         } else {
             entity.setStatus(UserStatus.PENDING);
@@ -124,12 +123,12 @@ public class AuthService implements UserLookup {
         boolean isFirstUser = userRepository.count() == 0;
         UserRole assignedRole;
         if (isFirstUser) {
-            assignedRole = UserRole.ADMIN_LIGA;
+            assignedRole = UserRole.ADMIN_INSTITUTION;
         } else {
             try {
                 assignedRole = UserRole.valueOf(defaultRole);
             } catch (Exception e) {
-                assignedRole = UserRole.ADMIN_LIGA;
+                assignedRole = UserRole.ADMIN_INSTITUTION;
             }
         }
         newUser.setRole(assignedRole);
@@ -191,7 +190,7 @@ public class AuthService implements UserLookup {
     @Override
     public boolean isAdminByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(normalize(email))
-                .map(user -> user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.ADMIN_LIGA)
+                .map(user -> user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.ADMIN_INSTITUTION)
                 .orElse(false);
     }
 
@@ -261,7 +260,7 @@ public class AuthService implements UserLookup {
             }
             newUser.setName(name.trim());
             newUser.setStatus(UserStatus.ACTIVE);
-            newUser.setRole(UserRole.ADMIN_LIGA);
+            newUser.setRole(UserRole.ADMIN_INSTITUTION);
             newUser.setFirebaseUid("dev-" + UUID.randomUUID());
             return newUser;
         });

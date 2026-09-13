@@ -5,8 +5,10 @@ import lombok.Getter;
 @Getter
 public enum GroupingType implements PersistableEnum {
 
-    DIVISIONS("DIVISIONS", "Divisões"),
-    GROUPS("GROUPS", "Grupos");
+    NONE("NONE", "Sem Agrupamento"),
+    GROUPS("GROUPS", "Grupos"),
+    CONFERENCES("CONFERENCES", "Conferências & Divisões"),
+    DIVISIONS("DIVISIONS", "Divisões");
 
     private final String code;
     private final String description;

@@ -1,0 +1,13 @@
+package br.com.flagplatform.affiliation.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
+
+public record CreateAffiliationWindowRequest(
+        @NotBlank String season,
+        @NotBlank String title,
+        @NotNull LocalDate startDate,
+        @NotNull LocalDate endDate,
+        String instructions
+) {}

@@ -12,8 +12,14 @@ public interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
 
     List<TeamEntity> findAllByOrganizationIdOrderByNameAsc(UUID organizationId);
 
+    List<TeamEntity> findAllByClubIdOrderByNameAsc(UUID clubId);
+
     boolean existsByOrganizationIdAndNameIgnoreCase(UUID organizationId, String name);
 
+    boolean existsByClubIdAndNameIgnoreCase(UUID clubId, String name);
+
     boolean existsByOrganizationIdAndNameIgnoreCaseAndIdNot(UUID organizationId, String name, UUID id);
+
+    boolean existsByClubIdAndNameIgnoreCaseAndIdNot(UUID clubId, String name, UUID id);
 
 }

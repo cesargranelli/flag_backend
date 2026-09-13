@@ -1,5 +1,6 @@
 package br.com.flagplatform.team.entity;
 
+import br.com.flagplatform.common.enums.CompetitionTeamStatus;
 import br.com.flagplatform.common.persistence.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -30,6 +31,18 @@ public class CompetitionTeamEntity extends BaseEntity {
     @Column(name = "team_id", nullable = false)
     private UUID teamId;
 
-    @Column(name = "division_id")
-    private UUID divisionId;
+    @Column(name = "status", nullable = false)
+    private CompetitionTeamStatus status = CompetitionTeamStatus.PENDING;
+
+    @Column(name = "group_name")
+    private String groupName;
+
+    @Column(name = "conference_name")
+    private String conferenceName;
+
+    @Column(name = "division_name")
+    private String divisionName;
+
+    @Column(name = "seed_number")
+    private Integer seedNumber;
 }

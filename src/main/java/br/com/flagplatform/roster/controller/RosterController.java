@@ -133,4 +133,48 @@ public class RosterController {
         service.reactivate(teamId, competitionId, authentication.getName());
     }
 
+    // -----------------------------------------------------------------------
+    // Elenco-base do time (sem competição associada) — usado pelo painel Admin
+    // -----------------------------------------------------------------------
+
+    @Operation(
+            summary = "Listar elenco base do time",
+            description = "Lista os atletas do elenco-base de um time (sem competição vinculada), ordenados por número e nome. Acesso público."
+    )
+    @GetMapping("/api/v1/teams/{teamId}/roster")
+    public List<RosterEntryResponse> findBaseRoster(
+            @Parameter(description = "Id do time") @PathVariable UUID teamId) {
+        return service.findBaseRoster(teamId);
+    }
+
+    @Operation(
+            summary = "Adicionar atleta ao elenco base",
+            description = "Adiciona um atleta ao elenco-base do time (sem competição). Cria o elenco-base se ainda não existir. Permitido apenas para ADMIN ou ORGANIZER."
+    )
+    @ApiResponse(responseCode = "403", description = "Usuário não é ADMIN nem ORGANIZER")
+    @PostMapping("/api/v1/teams/{teamId}/roster")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    public RosterEntryResponse addToBaseRoster(
+            @Parameter(description = "Id do time") @PathVariable UUID teamId,
+            @Valid @RequestBody AddRosterEntryRequest request,
+            Authentication authentication) {
+        return service.addToBaseRoster(teamId, request, authentication.getName());
+    }
+
+    @Operation(
+            summary = "Remover atleta do elenco base",
+            description = "Remove um atleta do elenco-base do time. Permitido apenas para ADMIN ou ORGANIZER."
+    )
+    @ApiResponse(responseCode = "403", description = "Usuário não é ADMIN nem ORGANIZER")
+    @DeleteMapping("/api/v1/teams/{teamId}/roster/{athleteId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    public void removeFromBaseRoster(
+            @Parameter(description = "Id do time") @PathVariable UUID teamId,
+            @Parameter(description = "Id do atleta") @PathVariable UUID athleteId,
+            Authentication authentication) {
+        service.removeFromBaseRoster(teamId, athleteId, authentication.getName());
+    }
+
 }

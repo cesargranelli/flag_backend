@@ -17,6 +17,7 @@ import br.com.flagplatform.competition.exception.CompetitionNotOwnedByCreatorExc
 import br.com.flagplatform.competition.exception.DuplicateCompetitionNameException;
 import br.com.flagplatform.competition.mapper.CompetitionMapper;
 import br.com.flagplatform.competition.repository.CompetitionRepository;
+import br.com.flagplatform.competition.repository.CompetitionEnrollmentWindowRepository;
 import br.com.flagplatform.competition.CompetitionCreatedEvent;
 import br.com.flagplatform.organization.OrganizationLookup;
 import br.com.flagplatform.user.UserLookup;
@@ -41,6 +42,7 @@ public class CompetitionService implements CompetitionLookup {
 
     private final CompetitionMapper mapper;
     private final CompetitionRepository repository;
+    private final CompetitionEnrollmentWindowRepository windowRepository;
     private final OrganizationLookup organizationLookup;
     private final UserLookup userLookup;
     private final ApplicationEventPublisher events;
@@ -57,9 +59,11 @@ public class CompetitionService implements CompetitionLookup {
         if (entity.getStatus() == null) {
             entity.setStatus(CompetitionStatus.DRAFT);
         }
-        // Issue #308: rótulo do agrupamento — default DIVISIONS.
+        if (entity.getTournamentFormat() == null) {
+            entity.setTournamentFormat(br.com.flagplatform.common.enums.TournamentFormat.ROUND_ROBIN);
+        }
         if (entity.getGroupingType() == null) {
-            entity.setGroupingType(GroupingType.DIVISIONS);
+            entity.setGroupingType(GroupingType.NONE);
         }
         // V260: registra quem criou o campeonato — base da regra de
         // edição restrita ao criador (ou ADMIN).
@@ -205,6 +209,13 @@ public class CompetitionService implements CompetitionLookup {
                 .collect(Collectors.toMap(CompetitionInfo::id, info -> info));
     }
 
+    @Override
+    public boolean isEnrollmentWindowOpen(UUID competitionId) {
+        return windowRepository.findByCompetitionId(competitionId)
+                .filter(br.com.flagplatform.competition.entity.CompetitionEnrollmentWindowEntity::isOpen)
+                .isPresent();
+    }
+
     private CompetitionEntity findEntityById(UUID id) {
         return repository.findById(id)
                 .orElseThrow(() -> new CompetitionNotFoundException(id));
@@ -217,6 +228,7 @@ public class CompetitionService implements CompetitionLookup {
     private CompetitionSummaryResponse toSummary(CompetitionEntity entity) {
         return new CompetitionSummaryResponse(
                 entity.getId(),
+                entity.getOrganizationId(),
                 entity.getName(),
                 organizationLookup.findTradeNameById(entity.getOrganizationId()),
                 entity.getStatus(),
@@ -245,7 +257,9 @@ public class CompetitionService implements CompetitionLookup {
                 base.startDate(),
                 base.endDate(),
                 base.status(),
+                base.tournamentFormat(),
                 base.groupingType(),
+                base.groupingConfig(),
                 base.season(),
                 base.createdBy(),
                 base.createdAt(),

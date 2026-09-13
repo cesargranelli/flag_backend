@@ -3,13 +3,13 @@ package br.com.flagplatform.team.controller;
 import br.com.flagplatform.common.security.SecurityExpressions;
 import br.com.flagplatform.team.dto.request.CreateTeamRequest;
 import br.com.flagplatform.team.dto.request.EnrollTeamRequest;
+import br.com.flagplatform.team.dto.request.UpdateCompetitionTeamRequest;
 import br.com.flagplatform.team.dto.request.UpdateTeamRequest;
 import br.com.flagplatform.team.dto.response.CompetitionTeamResponse;
 import br.com.flagplatform.team.dto.response.TeamResponse;
 import br.com.flagplatform.team.service.TeamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +51,8 @@ public class TeamController {
         return service.create(organizationId, request, authentication.getName());
     }
 
+
+
     @Operation(
             summary = "Listar times de um clube",
             description = "Lista os times de uma organização (clube), ordenados por nome. Acesso público."
@@ -63,7 +65,7 @@ public class TeamController {
 
     @Operation(
             summary = "Listar todos os times",
-            description = "Lista todos os times da plataforma. Usado pelas telas de associação de times a campeonatos. Acesso público."
+            description = "Lista todos os times da plataforma com o nome do clube vinculado. Acesso público."
     )
     @GetMapping("/api/v1/teams")
     public List<TeamResponse> findAll() {
@@ -72,7 +74,7 @@ public class TeamController {
 
     @Operation(
             summary = "Buscar time por id",
-            description = "Retorna o detalhe de um time. Acesso público."
+            description = "Retorna os detalhes de um time específico. Acesso público."
     )
     @GetMapping("/api/v1/teams/{id}")
     public TeamResponse findById(
@@ -82,10 +84,10 @@ public class TeamController {
 
     @Operation(
             summary = "Atualizar time",
-            description = "Atualiza um time existente. Permitido apenas para ADMIN ou ORGANIZER."
+            description = "Atualiza um time existente. Permitido para ADMIN, ORGANIZER ou MANAGER."
     )
     @PutMapping("/api/v1/teams/{id}")
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    @PreAuthorize(SecurityExpressions.INSTITUTION_WRITE)
     public TeamResponse update(
             @Parameter(description = "Id do time") @PathVariable UUID id,
             @Valid @RequestBody UpdateTeamRequest request,
@@ -95,11 +97,11 @@ public class TeamController {
 
     @Operation(
             summary = "Excluir time",
-            description = "Remove um time. Permitido apenas para ADMIN ou ORGANIZER."
+            description = "Remove um time. Permitido para ADMIN, ORGANIZER ou MANAGER."
     )
     @DeleteMapping("/api/v1/teams/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    @PreAuthorize(SecurityExpressions.INSTITUTION_WRITE)
     public void delete(
             @Parameter(description = "Id do time") @PathVariable UUID id,
             Authentication authentication) {
@@ -108,10 +110,10 @@ public class TeamController {
 
     @Operation(
             summary = "Desativar time",
-            description = "Exclusão lógica: marca o time como INACTIVE. Permitido apenas para ADMIN ou ORGANIZER."
+            description = "Exclusão lógica: marca o time como INACTIVE. Permitido para ADMIN, ORGANIZER ou MANAGER."
     )
     @PostMapping("/api/v1/teams/{id}/deactivate")
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    @PreAuthorize(SecurityExpressions.INSTITUTION_WRITE)
     public void deactivate(
             @Parameter(description = "Id do time") @PathVariable UUID id,
             Authentication authentication) {
@@ -120,10 +122,10 @@ public class TeamController {
 
     @Operation(
             summary = "Reativar time",
-            description = "Reverte a desativação lógica, voltando o time para ACTIVE. Permitido apenas para ADMIN ou ORGANIZER."
+            description = "Reverte a desativação lógica, voltando o time para ACTIVE. Permitido para ADMIN, ORGANIZER ou MANAGER."
     )
     @PostMapping("/api/v1/teams/{id}/reactivate")
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    @PreAuthorize(SecurityExpressions.INSTITUTION_WRITE)
     public void reactivate(
             @Parameter(description = "Id do time") @PathVariable UUID id,
             Authentication authentication) {
@@ -134,17 +136,57 @@ public class TeamController {
 
     @Operation(
             summary = "Inscrever time em competição",
-            description = "Inscreve um time em uma competição. Permitido apenas para ADMIN ou ORGANIZER."
+            description = "Inscreve um time em uma competição. Permitido para ADMIN, organizador da competição ou gestor da agremiação dona do time."
     )
     @PostMapping("/api/v1/competitions/{competitionId}/teams/{teamId}")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    @PreAuthorize(SecurityExpressions.ACTIVE)
     public CompetitionTeamResponse enrollInCompetition(
             @Parameter(description = "Id da competição") @PathVariable UUID competitionId,
             @Parameter(description = "Id do time") @PathVariable UUID teamId,
             @RequestBody(required = false) EnrollTeamRequest request,
             Authentication authentication) {
         return service.enrollInCompetition(competitionId, teamId, request, authentication.getName());
+    }
+
+    @Operation(
+            summary = "Atualizar alocação de time em competição",
+            description = "Atualiza grupo, conferência, divisão ou seed de um time inscrito. Permitido apenas para ADMIN ou criador/organizador."
+    )
+    @PutMapping("/api/v1/competitions/{competitionId}/teams/{teamId}")
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    public CompetitionTeamResponse updateAllocation(
+            @Parameter(description = "Id da competição") @PathVariable UUID competitionId,
+            @Parameter(description = "Id do time") @PathVariable UUID teamId,
+            @RequestBody UpdateCompetitionTeamRequest request,
+            Authentication authentication) {
+        return service.updateAllocation(competitionId, teamId, request, authentication.getName());
+    }
+
+    @Operation(
+            summary = "Homologar/Aprovar time na competição",
+            description = "Aprova a inscrição de um time. Permitido apenas para ADMIN ou criador/organizador."
+    )
+    @PostMapping("/api/v1/competitions/{competitionId}/teams/{teamId}/approve")
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    public CompetitionTeamResponse approveTeam(
+            @Parameter(description = "Id da competição") @PathVariable UUID competitionId,
+            @Parameter(description = "Id do time") @PathVariable UUID teamId,
+            Authentication authentication) {
+        return service.approveTeam(competitionId, teamId, authentication.getName());
+    }
+
+    @Operation(
+            summary = "Rejeitar inscrição de time na competição",
+            description = "Rejeita a inscrição de um time. Permitido apenas para ADMIN ou criador/organizador."
+    )
+    @PostMapping("/api/v1/competitions/{competitionId}/teams/{teamId}/reject")
+    @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
+    public CompetitionTeamResponse rejectTeam(
+            @Parameter(description = "Id da competição") @PathVariable UUID competitionId,
+            @Parameter(description = "Id do time") @PathVariable UUID teamId,
+            Authentication authentication) {
+        return service.rejectTeam(competitionId, teamId, authentication.getName());
     }
 
     @Operation(
@@ -158,8 +200,18 @@ public class TeamController {
     }
 
     @Operation(
+            summary = "Listar competições de um time",
+            description = "Lista todas as inscrições de um time em competições com seus respectivos status. Acesso público."
+    )
+    @GetMapping("/api/v1/teams/{teamId}/competitions")
+    public List<CompetitionTeamResponse> findCompetitionsByTeamId(
+            @Parameter(description = "Id do time") @PathVariable UUID teamId) {
+        return service.findByTeamId(teamId);
+    }
+
+    @Operation(
             summary = "Remover time da competição",
-            description = "Remove a inscrição de um time em uma competição. Permitido apenas para ADMIN ou ORGANIZER."
+            description = "Remove a inscrição de um time em uma competição. Permitido apenas para ADMIN ou criador/organizador."
     )
     @DeleteMapping("/api/v1/competitions/{competitionId}/teams/{teamId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -168,7 +220,7 @@ public class TeamController {
             @Parameter(description = "Id da competição") @PathVariable UUID competitionId,
             @Parameter(description = "Id do time") @PathVariable UUID teamId,
             Authentication authentication) {
-        service.removeFromCompetition(competitionId, teamId);
+        service.removeFromCompetition(competitionId, teamId, authentication.getName());
     }
 
 }

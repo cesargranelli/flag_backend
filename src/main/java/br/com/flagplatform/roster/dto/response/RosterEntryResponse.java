@@ -1,6 +1,5 @@
 package br.com.flagplatform.roster.dto.response;
 
-import br.com.flagplatform.common.enums.AthletePosition;
 import br.com.flagplatform.common.enums.RosterStatus;
 
 import java.time.LocalDateTime;
@@ -11,9 +10,8 @@ public record RosterEntryResponse(
         UUID rosterId,
         UUID athleteId,
         String athleteName,
-        String athleteNickname,
         String nickname,
-        AthletePosition position,
+        String positions,
         Integer number,
         String photoUrl,
         RosterStatus status,

@@ -4,6 +4,7 @@ import br.com.flagplatform.common.enums.AgeGroup;
 import br.com.flagplatform.common.enums.CompetitionStatus;
 import br.com.flagplatform.common.enums.Gender;
 import br.com.flagplatform.common.enums.GroupingType;
+import br.com.flagplatform.common.enums.TournamentFormat;
 import br.com.flagplatform.common.enums.Modality;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -39,8 +40,12 @@ public record CreateCompetitionRequest(
 
         CompetitionStatus status,
 
-        // Issue #308: rótulo do agrupamento — DIVISIONS (default) | GROUPS.
+        TournamentFormat tournamentFormat,
+
+        // Issue #308: rótulo do agrupamento — NONE | GROUPS | CONFERENCES | DIVISIONS.
         GroupingType groupingType,
+
+        java.util.Map<String, Object> groupingConfig,
 
         @NotBlank
         @Size(max = 50)

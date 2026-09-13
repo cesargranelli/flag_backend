@@ -33,7 +33,7 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(originPatterns(configuredOrigins));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(List.of("*", "Content-Type", "Authorization"));
         config.setExposedHeaders(List.of("Location"));
         // Autenticação via Bearer (Authorization header), sem cookies:
         // não é necessário permitir credenciais.
