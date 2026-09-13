@@ -80,16 +80,27 @@ public class RoundController {
 
     @Operation(
             summary = "Atualizar rodada",
-            description = "Atualiza uma rodada existente. Permitido apenas ao criador do campeonato ou ADMIN."
+            description = "Atualiza uma rodada existente. O competitionId do path deve coincidir com o "
+                    + "campeonato da rodada. Permitido apenas ao criador do campeonato ou ADMIN, "
+                    + "enquanto estiver em DRAFT."
     )
     @ApiResponse(responseCode = "403", description = "Usuário não é o criador do campeonato nem ADMIN")
-    @PutMapping("/api/v1/rounds/{id}")
+    @ApiResponse(responseCode = "409", description = "Campeonato não está em status DRAFT")
+    @PutMapping("/api/v1/competitions/{competitionId}/rounds/{id}")
     @PreAuthorize(SecurityExpressions.ADMIN_OR_ORGANIZER)
     public RoundResponse update(
+            @Parameter(description = "Id do campeonato") @PathVariable UUID competitionId,
             @Parameter(description = "Id da rodada") @PathVariable UUID id,
             @Valid @RequestBody UpdateRoundRequest request,
             Authentication authentication) {
-        return service.update(id, request, authentication.getName());
+        log.info("Recebida requisicao PUT /api/v1/competitions/{}/rounds/{} de {}: number={} name={}",
+                competitionId, id, authentication.getName(), request.number(), request.name());
+        var requestWithCompetition = new UpdateRoundRequest(
+                competitionId,
+                request.number(),
+                request.name(),
+                request.type());
+        return service.update(id, requestWithCompetition, authentication.getName());
     }
 
 }
