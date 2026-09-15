@@ -218,10 +218,35 @@ public class GameService implements GameLookup {
     }
 
     @Transactional
-    public GameResponse updateStatus(UUID id, GameStatus newStatus) {
+    public GameResponse updateStatus(UUID id, UpdateGameStatusRequest request) {
         GameEntity entity = findEntityById(id);
+        GameStatus newStatus = request.status();
+
         if (!isValidTransition(entity.getStatus(), newStatus)) {
             throw new InvalidGameStatusTransitionException(entity.getStatus(), newStatus);
+        }
+
+        // Ao adiar ou reagendar, exige nova data/hora
+        if (newStatus == GameStatus.POSTPONED) {
+            if (request.scheduledAt() == null) {
+                throw new IllegalArgumentException("Data/hora obrigatória ao adiar um jogo");
+            }
+            entity.setScheduledAt(request.scheduledAt());
+            if (request.venueId() != null) {
+                venueLookup.assertExists(request.venueId());
+                entity.setVenueId(request.venueId());
+            }
+        }
+
+        // Ao reagendar (POSTPONED → SCHEDULED), atualiza data/hora e opcionalmente campo
+        if (entity.getStatus() == GameStatus.POSTPONED && newStatus == GameStatus.SCHEDULED) {
+            if (request.scheduledAt() != null) {
+                entity.setScheduledAt(request.scheduledAt());
+            }
+            if (request.venueId() != null) {
+                venueLookup.assertExists(request.venueId());
+                entity.setVenueId(request.venueId());
+            }
         }
 
         entity.setStatus(newStatus);
@@ -377,10 +402,16 @@ public class GameService implements GameLookup {
 
     private boolean isValidTransition(GameStatus current, GameStatus requested) {
         return switch (current) {
-            case SCHEDULED -> requested == GameStatus.OPEN || requested == GameStatus.CANCELLED;
-            case OPEN -> requested == GameStatus.IN_PROGRESS || requested == GameStatus.CANCELLED;
+            case SCHEDULED -> requested == GameStatus.OPEN
+                    || requested == GameStatus.CANCELLED
+                    || requested == GameStatus.POSTPONED;
+            case OPEN -> requested == GameStatus.IN_PROGRESS
+                    || requested == GameStatus.CANCELLED
+                    || requested == GameStatus.POSTPONED;
             case IN_PROGRESS -> requested == GameStatus.CONFERENCE;
             case CONFERENCE -> requested == GameStatus.FINISHED;
+            case POSTPONED -> requested == GameStatus.SCHEDULED
+                    || requested == GameStatus.CANCELLED;
             case FINISHED, CANCELLED -> false;
         };
     }

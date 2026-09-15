@@ -5,12 +5,11 @@ import lombok.Getter;
 @Getter
 public enum UserRole implements PersistableEnum {
 
-    ADMIN("ADMIN", "Administrador"),
-    ORGANIZER("ORGANIZER", "Organizador"),
-    COMMISSIONER("COMMISSIONER", "Delegado"),
-    ADMIN_INSTITUTION("ADMIN_INSTITUTION", "Administrador da Liga"),
-    REFEREE("REFEREE", "Árbitro"),
-    CLUB_MANAGER("CLUB_MANAGER", "Gestor do Clube"),
+    ADMIN("ADMIN", "Administrador da plataforma"),
+    ORGANIZER("ORGANIZER", "Administrador de federação, associação ou liga"),
+    COMMISSIONER("COMMISSIONER", "Comissário/delegado das partidas"),
+    REFEREE("REFEREE", "Árbitro das partidas"),
+    MANAGER("MANAGER", "Gestor do clube ou universidade"),
     FAN("FAN", "Torcedor");
 
     private final String code;
