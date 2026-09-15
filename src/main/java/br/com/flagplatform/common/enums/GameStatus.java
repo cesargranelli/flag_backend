@@ -5,12 +5,13 @@ import lombok.Getter;
 @Getter
 public enum GameStatus implements PersistableEnum {
 
-    SCHEDULED("SCHEDULED", "Scheduled"),
-    OPEN("OPEN", "Open"),
-    IN_PROGRESS("IN_PROGRESS", "In progress"),
-    CONFERENCE("CONFERENCE", "Conference"),
-    FINISHED("FINISHED", "Finished"),
-    CANCELLED("CANCELLED", "Cancelled");
+    SCHEDULED("SCHEDULED", "Agendado"),
+    OPEN("OPEN", "Aberto"),
+    IN_PROGRESS("IN_PROGRESS", "Em andamento"),
+    CONFERENCE("CONFERENCE", "Em conferência"),
+    FINISHED("FINISHED", "Finalizado"),
+    CANCELLED("CANCELLED", "Cancelado"),
+    POSTPONED("POSTPONED", "Adiado");
 
     private final String code;
     private final String description;

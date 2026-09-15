@@ -87,7 +87,13 @@ public interface GameApi {
 
     @Operation(
             summary = "Atualizar status do jogo",
-            description = "Atualiza o status de um jogo conforme as transições válidas (SCHEDULED->OPEN, OPEN->IN_PROGRESS, IN_PROGRESS->CONFERENCE, CONFERENCE->FINISHED, SCHEDULED/OPEN->CANCELLED). Requer autenticação."
+            description = "Atualiza o status de um jogo conforme as transições válidas: "
+                    + "SCHEDULED→OPEN, SCHEDULED→CANCELLED, SCHEDULED→POSTPONED, "
+                    + "OPEN→IN_PROGRESS, OPEN→CANCELLED, OPEN→POSTPONED, "
+                    + "IN_PROGRESS→CONFERENCE, CONFERENCE→FINISHED, "
+                    + "POSTPONED→SCHEDULED, POSTPONED→CANCELLED. "
+                    + "Ao adiar (POSTPONED), informede a nova data/hora em 'scheduledAt' (obrigatório). "
+                    + "Ao reagendar (POSTPONED→SCHEDULED), opcionalmente informe nova data/hora e/ou campo."
     )
     @PatchMapping("/api/v1/games/{id}/status")
     @PreAuthorize(SecurityExpressions.ADMIN_OR_COMMISSIONER)

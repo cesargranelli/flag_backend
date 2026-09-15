@@ -54,7 +54,7 @@ public class GameController implements GameApi {
 
     @Override
     public GameResponse updateStatus(UUID id, UpdateGameStatusRequest request) {
-        return service.updateStatus(id, request.status());
+        return service.updateStatus(id, request);
     }
 
     @Override
