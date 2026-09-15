@@ -1,6 +1,5 @@
 package br.com.flagplatform.user.controller;
 
-import br.com.flagplatform.common.security.SecurityExpressions;
 import br.com.flagplatform.user.dto.request.ChangeUserRoleRequest;
 import br.com.flagplatform.user.dto.request.CreateUserRequest;
 import br.com.flagplatform.user.dto.request.DevTokenRequest;
@@ -8,121 +7,61 @@ import br.com.flagplatform.user.dto.request.RegisterRequest;
 import br.com.flagplatform.user.dto.response.DevTokenResponse;
 import br.com.flagplatform.user.dto.response.UserResponse;
 import br.com.flagplatform.user.service.AuthService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "Auth", description = "Cadastro e usuário atual")
-@RequestMapping("/api/v1/auth")
 @RestController
 @RequiredArgsConstructor
-public class AuthController {
+public class AuthController implements AuthApi {
 
     private final AuthService service;
 
-    @Operation(
-            summary = "Cadastrar usuário",
-            description = "Cria um usuário com o papel ORGANIZER. Acesso público."
-    )
-    @PostMapping("/register")
-    @ResponseStatus(HttpStatus.CREATED)
-    public UserResponse register(@Valid @RequestBody RegisterRequest request) {
+    @Override
+    public UserResponse register(RegisterRequest request) {
         return service.register(request);
     }
 
-    @Operation(
-            summary = "Emitir token de desenvolvimento/teste",
-            description = "Gera um token JWT com claims compatível com o parser de desenvolvimento do backend. Uso em dev/test."
-    )
-    @PostMapping("/dev-token")
-    @ResponseStatus(HttpStatus.OK)
-    public DevTokenResponse generateDevToken(@Valid @RequestBody DevTokenRequest request) {
+    @Override
+    public DevTokenResponse generateDevToken(DevTokenRequest request) {
         return service.generateDevToken(request);
     }
 
-    @Operation(
-            summary = "Usuário atual",
-            description = "Retorna o usuário autenticado no contexto do Spring Security (Firebase ID Token via header Authorization)."
-    )
-    @GetMapping("/me")
-    public UserResponse me(@AuthenticationPrincipal Object principal) {
+    @Override
+    public UserResponse me(Object principal) {
         return service.me(principal);
     }
 
-    @Operation(
-            summary = "Criar usuário",
-            description = "Cria um usuário com o papel informado (ADMIN, ORGANIZER, COMMISSIONER, REFEREE, MANAGER ou FAN). Exclusivo de ADMIN."
-    )
-    @PostMapping("/users")
-    @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize(SecurityExpressions.ADMIN)
-    public UserResponse createUser(@Valid @RequestBody CreateUserRequest request) {
+    @Override
+    public UserResponse createUser(CreateUserRequest request) {
         return service.createUser(request);
     }
 
-    @Operation(
-            summary = "Listar usuários",
-            description = "Lista os usuários cadastrados, ordenados por nome. Exclusivo de ADMIN."
-    )
-    @GetMapping("/users")
-    @PreAuthorize(SecurityExpressions.ADMIN)
+    @Override
     public List<UserResponse> listUsers() {
         return service.findAll();
     }
 
-    @Operation(
-            summary = "Listar usuários pendentes",
-            description = "Lista os usuários aguardando aprovação. Exclusivo de ADMIN."
-    )
-    @GetMapping("/users/pending")
-    @PreAuthorize(SecurityExpressions.ADMIN)
+    @Override
     public List<UserResponse> listPending() {
         return service.listPending();
     }
 
-    @Operation(
-            summary = "Aprovar usuário",
-            description = "Ativa uma conta pendente de organizador. Exclusivo de ADMIN."
-    )
-    @PostMapping("/users/{id}/approve")
-    @PreAuthorize(SecurityExpressions.ADMIN)
-    public UserResponse approve(@PathVariable UUID id) {
+    @Override
+    public UserResponse approve(UUID id) {
         return service.approve(id);
     }
 
-    @Operation(
-            summary = "Rejeitar usuário",
-            description = "Rejeita uma conta pendente de organizador. Exclusivo de ADMIN."
-    )
-    @PostMapping("/users/{id}/reject")
-    @PreAuthorize(SecurityExpressions.ADMIN)
-    public UserResponse reject(@PathVariable UUID id) {
+    @Override
+    public UserResponse reject(UUID id) {
         return service.reject(id);
     }
 
-    @Operation(
-            summary = "Alterar role de usuário",
-            description = "Altera o papel (role) de um usuário. Exclusivo de ADMIN."
-    )
-    @PatchMapping("/users/{id}/role")
-    @PreAuthorize(SecurityExpressions.ADMIN)
-    public UserResponse changeRole(@PathVariable UUID id, @Valid @RequestBody ChangeUserRoleRequest request) {
+    @Override
+    public UserResponse changeRole(UUID id, ChangeUserRoleRequest request) {
         return service.changeRole(id, request);
     }
-
 }
